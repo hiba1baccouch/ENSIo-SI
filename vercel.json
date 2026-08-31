@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/placeholders/(.*)",
+      "destination": "/placeholders/$1"
+    },
+    {
+      "source": "/((?!assets/|placeholders/|favicon|pwa-|apple-touch-icon|site.webmanifest|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
