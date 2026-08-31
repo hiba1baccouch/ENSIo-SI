@@ -101,28 +101,32 @@ export default function FindDifferenceGame({ config, onValidate, loading }) {
       {/* Scanner Views */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {(activeTab === 'both' || activeTab === 'original') && (
-          <div className="game-media-frame" style={{ height: 180, cursor: 'crosshair' }} onClick={handleImageClick}>
+          <div className="game-media-frame" style={{ height: 180, cursor: 'crosshair', position: 'relative', overflow: 'hidden' }} onClick={handleImageClick}>
             <div style={{ position: 'absolute', top: 6, left: 8, zIndex: 10, fontSize: 10, fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: 4 }}>
               FEED A — ORIGINAL
             </div>
-            <svg width="100%" height="100%" viewBox="0 0 400 200" fill="none">
-              <rect width="400" height="200" fill="#0f172a"/>
-              <rect width="400" height="120" fill="#1e1b4b"/>
-              <circle cx="340" cy="40" r="22" fill="#fbbf24"/>
-              <rect x="40" y="50" width="320" height="110" fill="#1e293b" stroke="#475569" strokeWidth="2"/>
-              <rect x="55" y="65" width="25" height="30" fill="#38bdf8" stroke="#0284c7" rx="2"/>
-              <rect x="95" y="65" width="25" height="30" fill="#38bdf8" stroke="#0284c7" rx="2"/>
-              <rect x="135" y="65" width="25" height="30" fill="#38bdf8" stroke="#0284c7" rx="2"/>
-              <path d="M170 50 Q200 15 230 50 Z" fill="#3b82f6"/>
-              <line x1="320" y1="50" x2="320" y2="20" stroke="#cbd5e1" strokeWidth="2"/>
-              <rect x="320" y="20" width="22" height="14" fill="#ef4444"/>
-              <circle cx="331" cy="27" r="4" fill="#ffffff"/>
-              <rect y="160" width="400" height="40" fill="#334155"/>
-              <rect x="110" y="140" width="30" height="20" fill="#6366f1" rx="2"/>
-              <text x="125" y="153" fill="#fff" fontSize="7" textAnchor="middle" fontWeight="bold">ENISo</text>
-              <circle cx="280" cy="140" r="16" fill="#16a34a"/>
-              <rect x="277" y="156" width="6" height="15" fill="#78350f"/>
-            </svg>
+            {config.image_original ? (
+              <img src={config.image_original} alt="Feed A Original" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <svg width="100%" height="100%" viewBox="0 0 400 200" fill="none">
+                <rect width="400" height="200" fill="#0f172a"/>
+                <rect width="400" height="120" fill="#1e1b4b"/>
+                <circle cx="340" cy="40" r="22" fill="#fbbf24"/>
+                <rect x="40" y="50" width="320" height="110" fill="#1e293b" stroke="#475569" strokeWidth="2"/>
+                <rect x="55" y="65" width="25" height="30" fill="#38bdf8" stroke="#0284c7" rx="2"/>
+                <rect x="95" y="65" width="25" height="30" fill="#38bdf8" stroke="#0284c7" rx="2"/>
+                <rect x="135" y="65" width="25" height="30" fill="#38bdf8" stroke="#0284c7" rx="2"/>
+                <path d="M170 50 Q200 15 230 50 Z" fill="#3b82f6"/>
+                <line x1="320" y1="50" x2="320" y2="20" stroke="#cbd5e1" strokeWidth="2"/>
+                <rect x="320" y="20" width="22" height="14" fill="#ef4444"/>
+                <circle cx="331" cy="27" r="4" fill="#ffffff"/>
+                <rect y="160" width="400" height="40" fill="#334155"/>
+                <rect x="110" y="140" width="30" height="20" fill="#6366f1" rx="2"/>
+                <text x="125" y="153" fill="#fff" fontSize="7" textAnchor="middle" fontWeight="bold">ENISo</text>
+                <circle cx="280" cy="140" r="16" fill="#16a34a"/>
+                <rect x="277" y="156" width="6" height="15" fill="#78350f"/>
+              </svg>
+            )}
             {TARGET_SPOTS.filter(s => foundIds.includes(s.id)).map(spot => (
               <div
                 key={spot.id}
@@ -144,27 +148,31 @@ export default function FindDifferenceGame({ config, onValidate, loading }) {
         )}
 
         {(activeTab === 'both' || activeTab === 'modified') && (
-          <div className="game-media-frame" style={{ height: 180, cursor: 'crosshair' }} onClick={handleImageClick}>
+          <div className="game-media-frame" style={{ height: 180, cursor: 'crosshair', position: 'relative', overflow: 'hidden' }} onClick={handleImageClick}>
             <div style={{ position: 'absolute', top: 6, left: 8, zIndex: 10, fontSize: 10, fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: 4 }}>
               FEED B — MODIFIED (TAP ANOMALIES)
             </div>
-            <svg width="100%" height="100%" viewBox="0 0 400 200" fill="none">
-              <rect width="400" height="200" fill="#0f172a"/>
-              <rect width="400" height="120" fill="#1e1b4b"/>
-              <circle cx="340" cy="40" r="22" fill="#fbbf24"/>
-              <rect x="40" y="50" width="320" height="110" fill="#1e293b" stroke="#475569" strokeWidth="2"/>
-              <rect x="55" y="65" width="25" height="30" fill="#1e293b" stroke="#334155" rx="2"/>
-              <rect x="95" y="65" width="25" height="30" fill="#38bdf8" stroke="#0284c7" rx="2"/>
-              <rect x="135" y="65" width="25" height="30" fill="#38bdf8" stroke="#0284c7" rx="2"/>
-              <path d="M170 50 Q200 15 230 50 Z" fill="#eab308"/>
-              <line x1="320" y1="50" x2="320" y2="20" stroke="#cbd5e1" strokeWidth="2"/>
-              <rect x="320" y="20" width="22" height="14" fill="#10b981"/>
-              <rect y="160" width="400" height="40" fill="#334155"/>
-              <circle cx="280" cy="140" r="16" fill="#16a34a"/>
-              <rect x="277" y="156" width="6" height="15" fill="#78350f"/>
-              <circle cx="250" cy="135" r="13" fill="#22c55e"/>
-              <rect x="248" y="148" width="5" height="15" fill="#78350f"/>
-            </svg>
+            {config.image_modified ? (
+              <img src={config.image_modified} alt="Feed B Modified" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              <svg width="100%" height="100%" viewBox="0 0 400 200" fill="none">
+                <rect width="400" height="200" fill="#0f172a"/>
+                <rect width="400" height="120" fill="#1e1b4b"/>
+                <circle cx="340" cy="40" r="22" fill="#fbbf24"/>
+                <rect x="40" y="50" width="320" height="110" fill="#1e293b" stroke="#475569" strokeWidth="2"/>
+                <rect x="55" y="65" width="25" height="30" fill="#1e293b" stroke="#334155" rx="2"/>
+                <rect x="95" y="65" width="25" height="30" fill="#38bdf8" stroke="#0284c7" rx="2"/>
+                <rect x="135" y="65" width="25" height="30" fill="#38bdf8" stroke="#0284c7" rx="2"/>
+                <path d="M170 50 Q200 15 230 50 Z" fill="#eab308"/>
+                <line x1="320" y1="50" x2="320" y2="20" stroke="#cbd5e1" strokeWidth="2"/>
+                <rect x="320" y="20" width="22" height="14" fill="#10b981"/>
+                <rect y="160" width="400" height="40" fill="#334155"/>
+                <circle cx="280" cy="140" r="16" fill="#16a34a"/>
+                <rect x="277" y="156" width="6" height="15" fill="#78350f"/>
+                <circle cx="250" cy="135" r="13" fill="#22c55e"/>
+                <rect x="248" y="148" width="5" height="15" fill="#78350f"/>
+              </svg>
+            )}
             {TARGET_SPOTS.filter(s => foundIds.includes(s.id)).map(spot => (
               <div
                 key={spot.id}

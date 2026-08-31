@@ -66,40 +66,43 @@ export default function HiddenMessageGame({ config, onValidate, loading }) {
           style={{ height: 260, cursor: 'crosshair', position: 'relative', background: '#0a0f1d' }}
           onClick={handleImageClick}
         >
-          {/* Detailed Futuristic Campus Lab SVG with embedded subtle letters */}
-          <svg width="100%" height="100%" viewBox="0 0 500 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="500" height="300" fill="#0f172a"/>
-            {/* Lab Benches & Server Racks */}
-            <rect x="20" y="40" width="80" height="220" fill="#1e293b" stroke="#334155" rx="4"/>
-            <line x1="30" y1="80" x2="90" y2="80" stroke="#475569"/>
-            <line x1="30" y1="140" x2="90" y2="140" stroke="#475569"/>
-            <line x1="30" y1="200" x2="90" y2="200" stroke="#475569"/>
+          {config.image ? (
+            <img src={config.image} alt="Hidden Message Scene" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          ) : (
+            <svg width="100%" height="100%" viewBox="0 0 500 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="500" height="300" fill="#0f172a"/>
+              {/* Lab Benches & Server Racks */}
+              <rect x="20" y="40" width="80" height="220" fill="#1e293b" stroke="#334155" rx="4"/>
+              <line x1="30" y1="80" x2="90" y2="80" stroke="#475569"/>
+              <line x1="30" y1="140" x2="90" y2="140" stroke="#475569"/>
+              <line x1="30" y1="200" x2="90" y2="200" stroke="#475569"/>
 
-            {/* Element 1: 'E' hidden around (10%, 25%) -> (50, 75) in server vent */}
-            <path d="M45 70 L55 70 M45 75 L52 75 M45 80 L55 80 M45 70 L45 80" stroke="#6366f1" strokeWidth="2.5" opacity="0.6"/>
+              {/* Element 1: 'E' hidden around (10%, 25%) -> (50, 75) in server vent */}
+              <path d="M45 70 L55 70 M45 75 L52 75 M45 80 L55 80 M45 70 L45 80" stroke="#6366f1" strokeWidth="2.5" opacity="0.6"/>
 
-            {/* Center Robotic Arm station */}
-            <rect x="140" y="100" width="220" height="120" fill="#1e293b" stroke="#475569" rx="8"/>
-            <circle cx="250" cy="160" r="40" fill="#0284c7" opacity="0.2"/>
+              {/* Center Robotic Arm station */}
+              <rect x="140" y="100" width="220" height="120" fill="#1e293b" stroke="#475569" rx="8"/>
+              <circle cx="250" cy="160" r="40" fill="#0284c7" opacity="0.2"/>
 
-            {/* Element 2: 'N' hidden around (35%, 55%) -> (175, 165) on robot arm joint */}
-            <path d="M170 155 L170 175 L182 155 L182 175" stroke="#38bdf8" strokeWidth="2.5" opacity="0.6"/>
+              {/* Element 2: 'N' hidden around (35%, 55%) -> (175, 165) on robot arm joint */}
+              <path d="M170 155 L170 175 L182 155 L182 175" stroke="#38bdf8" strokeWidth="2.5" opacity="0.6"/>
 
-            {/* Top Display Terminal */}
-            <rect x="260" y="30" width="120" height="50" fill="#0369a1" stroke="#38bdf8" rx="4"/>
-            {/* Element 3: 'I' hidden around (60%, 15%) -> (300, 45) in circuit trace */}
-            <path d="M295 40 L305 40 M300 40 L300 60 M295 60 L305 60" stroke="#e0f2fe" strokeWidth="2.5" opacity="0.7"/>
+              {/* Top Display Terminal */}
+              <rect x="260" y="30" width="120" height="50" fill="#0369a1" stroke="#38bdf8" rx="4"/>
+              {/* Element 3: 'I' hidden around (60%, 15%) -> (300, 45) in circuit trace */}
+              <path d="M295 40 L305 40 M300 40 L300 60 M295 60 L305 60" stroke="#e0f2fe" strokeWidth="2.5" opacity="0.7"/>
 
-            {/* Right Terminal Rack */}
-            <rect x="390" y="40" width="90" height="220" fill="#1e293b" stroke="#334155" rx="4"/>
-            {/* Element 4: 'S' hidden around (80%, 70%) -> (400, 210) on power junction */}
-            <path d="M405 202 C395 202 395 210 405 210 C415 210 415 218 405 218" stroke="#f43f5e" strokeWidth="2.5" fill="none" opacity="0.65"/>
+              {/* Right Terminal Rack */}
+              <rect x="390" y="40" width="90" height="220" fill="#1e293b" stroke="#334155" rx="4"/>
+              {/* Element 4: 'S' hidden around (80%, 70%) -> (400, 210) on power junction */}
+              <path d="M405 202 C395 202 395 210 405 210 C415 210 415 218 405 218" stroke="#f43f5e" strokeWidth="2.5" fill="none" opacity="0.65"/>
 
-            {/* Floor tile grid */}
-            <line x1="0" y1="260" x2="500" y2="260" stroke="#334155" strokeWidth="2"/>
-            {/* Element 5: 'O' hidden around (45%, 85%) -> (225, 255) on floor drain / ring */}
-            <circle cx="225" cy="255" r="10" stroke="#10b981" strokeWidth="2.5" fill="none" opacity="0.65"/>
-          </svg>
+              {/* Floor tile grid */}
+              <line x1="0" y1="260" x2="500" y2="260" stroke="#334155" strokeWidth="2"/>
+              {/* Element 5: 'O' hidden around (45%, 85%) -> (225, 255) on floor drain / ring */}
+              <circle cx="225" cy="255" r="10" stroke="#10b981" strokeWidth="2.5" fill="none" opacity="0.65"/>
+            </svg>
+          )}
 
           {/* Render markers for all found elements */}
           {markers.map((m, idx) => (
