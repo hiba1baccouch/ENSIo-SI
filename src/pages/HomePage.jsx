@@ -142,15 +142,6 @@ export default function HomePage() {
               Scan Station QR Code
             </button>
           )}
-
-          {/* Quick Direct Link to active station for easy testing */}
-          <button
-            className="btn-secondary"
-            onClick={() => navigate(`/station/${currentStationNum}`)}
-            style={{ fontSize: 13 }}
-          >
-            Open Current Station #{currentStationNum} Directly
-          </button>
         </div>
 
         {/* Progressive Scoring Rule Card */}
