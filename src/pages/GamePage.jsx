@@ -33,6 +33,7 @@ export default function GamePage() {
   const [pointsEarned, setPointsEarned] = useState(0)
   const [isGameOver, setIsGameOver] = useState(false)
   const [gameOverMsg, setGameOverMsg] = useState('')
+  const [lastResult, setLastResult] = useState(null) // { correct: bool, answer: any }
 
   // Initialize Game Session
   useEffect(() => {
@@ -80,7 +81,11 @@ export default function GamePage() {
         setAttemptsUsed(res.attempts_used)
       }
 
+      // Track last answer result for visual feedback in game components
+      setLastResult({ correct: res.correct, answer })
+
       if (res.correct) {
+        setLastResult(null) // clear on success (hint card takes over)
         setUnlockedHint(res.hint)
         setPointsEarned(res.points_earned || station.points_reward)
       } else if (res.game_over) {
@@ -127,7 +132,8 @@ export default function GamePage() {
       config: station.config || {},
       onValidate: handleValidate,
       attemptsUsed,
-      loading: validating
+      loading: validating,
+      lastResult
     }
 
     switch (station.game_type) {

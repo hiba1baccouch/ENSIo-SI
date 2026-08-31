@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
-export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading }) {
+export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading, lastResult }) {
   const [selectedOption, setSelectedOption] = useState(null)
+  const [shake, setShake] = useState(false)
 
   const options = config.options || []
   const question = config.question || 'Where was this photo taken on campus?'
@@ -10,6 +11,59 @@ export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading
   const totalQuestions = config.total_questions || 7
 
   const attemptPoints = attemptsUsed === 0 ? 100 : attemptsUsed === 1 ? 75 : attemptsUsed === 2 ? 50 : 0
+
+  // When a wrong answer comes back, shake the options and clear selection so player can retry
+  useEffect(() => {
+    if (lastResult && !lastResult.correct) {
+      setShake(true)
+      const t = setTimeout(() => {
+        setShake(false)
+        setSelectedOption(null)
+      }, 900)
+      return () => clearTimeout(t)
+    }
+  }, [lastResult])
+
+  const handleSubmit = async () => {
+    if (!selectedOption || loading) return
+    await onValidate(selectedOption)
+  }
+
+  const getOptionStyle = (opt) => {
+    const isSelected = selectedOption === opt.id || selectedOption === opt.text
+    const isWrong = lastResult && !lastResult.correct && isSelected
+
+    return {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      width: '100%',
+      padding: '16px 18px',
+      background: isWrong
+        ? 'rgba(239, 68, 68, 0.08)'
+        : isSelected
+          ? 'rgba(79, 70, 229, 0.06)'
+          : '#fff',
+      border: isWrong
+        ? '2px solid #ef4444'
+        : isSelected
+          ? '2px solid var(--accent)'
+          : '1.5px solid var(--border-primary)',
+      borderRadius: 14,
+      fontSize: 15,
+      fontWeight: 500,
+      color: isWrong ? '#ef4444' : 'var(--text-primary)',
+      textAlign: 'left',
+      cursor: 'pointer',
+      transition: 'all 0.18s ease',
+      boxShadow: isWrong
+        ? '0 0 0 4px rgba(239,68,68,0.1)'
+        : isSelected
+          ? '0 0 0 4px rgba(79,70,229,0.08)'
+          : 'none',
+      animation: isWrong && shake ? 'shake 0.5s ease' : 'none'
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -66,9 +120,12 @@ export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading
         margin: '0 16px',
         padding: '20px 20px 16px',
         boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-        border: '1px solid var(--border-primary)',
+        border: lastResult && !lastResult.correct
+          ? '2px solid rgba(239,68,68,0.4)'
+          : '1px solid var(--border-primary)',
         position: 'relative',
-        zIndex: 2
+        zIndex: 2,
+        transition: 'border-color 0.3s ease'
       }}>
         {/* Category Tag */}
         <div style={{
@@ -86,7 +143,7 @@ export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading
           {category}
         </div>
 
-        {/* Photo Frame — fixed, no zoom */}
+        {/* Photo Frame */}
         <div style={{
           width: '100%',
           borderRadius: 16,
@@ -120,6 +177,24 @@ export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading
           )}
         </div>
 
+        {/* Wrong answer banner */}
+        {lastResult && !lastResult.correct && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239,68,68,0.35)',
+            borderRadius: 10,
+            padding: '8px 14px',
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#dc2626',
+            marginBottom: 12,
+            textAlign: 'center',
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            ❌ Mauvaise réponse — Réessayez !
+          </div>
+        )}
+
         {/* Question */}
         <p style={{
           fontSize: 11,
@@ -146,40 +221,28 @@ export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '20px 16px 0' }}>
         {options.map((opt, idx) => {
           const isSelected = selectedOption === opt.id || selectedOption === opt.text
+          const isWrong = lastResult && !lastResult.correct && isSelected
           return (
             <button
               key={opt.id || idx}
               type="button"
-              onClick={() => setSelectedOption(opt.id || opt.text)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                width: '100%',
-                padding: '16px 18px',
-                background: isSelected ? 'rgba(79, 70, 229, 0.06)' : '#fff',
-                border: isSelected ? '2px solid var(--accent)' : '1.5px solid var(--border-primary)',
-                borderRadius: 14,
-                fontSize: 15,
-                fontWeight: 500,
-                color: 'var(--text-primary)',
-                textAlign: 'left',
-                cursor: 'pointer',
-                transition: 'all 0.18s ease',
-                boxShadow: isSelected ? '0 0 0 4px rgba(79,70,229,0.08)' : 'none'
-              }}
+              onClick={() => !loading && setSelectedOption(opt.id || opt.text)}
+              style={getOptionStyle(opt)}
             >
               <span>{opt.text}</span>
-              {/* Radio circle */}
-              <div style={{
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                border: isSelected ? '6px solid var(--accent)' : '2px solid #cbd5e1',
-                flexShrink: 0,
-                transition: 'all 0.18s ease',
-                background: '#fff'
-              }} />
+              {isWrong ? (
+                <span style={{ fontSize: 18, flexShrink: 0, fontWeight: 700 }}>✗</span>
+              ) : (
+                <div style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  border: isSelected ? '6px solid var(--accent)' : '2px solid #cbd5e1',
+                  flexShrink: 0,
+                  transition: 'all 0.18s ease',
+                  background: '#fff'
+                }} />
+              )}
             </button>
           )
         })}
@@ -189,7 +252,7 @@ export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading
       <div style={{ padding: '20px 16px 24px' }}>
         <button
           type="button"
-          onClick={() => onValidate(selectedOption)}
+          onClick={handleSubmit}
           disabled={!selectedOption || loading}
           style={{
             width: '100%',
@@ -205,9 +268,20 @@ export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading
             boxShadow: selectedOption ? '0 6px 20px rgba(79,70,229,0.35)' : 'none'
           }}
         >
-          {loading ? 'Checking...' : 'Next'}
+          {loading ? 'Vérification...' : 'Valider →'}
         </button>
       </div>
+
+      {/* Shake animation */}
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-8px); }
+          40% { transform: translateX(8px); }
+          60% { transform: translateX(-6px); }
+          80% { transform: translateX(6px); }
+        }
+      `}</style>
     </div>
   )
 }
