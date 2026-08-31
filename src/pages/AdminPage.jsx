@@ -6,6 +6,7 @@ import AdminLogin from '../admin/AdminLogin'
 import TeamManager from '../admin/TeamManager'
 import StationEditor from '../admin/StationEditor'
 import EventLog from '../admin/EventLog'
+import QRGenerator from '../admin/QRGenerator'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function AdminPage() {
@@ -78,6 +79,7 @@ export default function AdminPage() {
         {[
           { key: 'teams', label: `Teams (${teams.length})` },
           { key: 'stations', label: `Stations (${stations.length})` },
+          { key: 'qr', label: '📷 QR Posters' },
           { key: 'events', label: `Event Log (${events.length})` },
           { key: 'settings', label: 'Settings' },
         ].map(t => (
@@ -95,6 +97,7 @@ export default function AdminPage() {
           <>
             {activeTab === 'teams' && <TeamManager teams={teams} onRefresh={loadAdminData} />}
             {activeTab === 'stations' && <StationEditor stations={stations} onRefresh={loadAdminData} />}
+            {activeTab === 'qr' && <QRGenerator stations={stations} onClose={() => setActiveTab('stations')} />}
             {activeTab === 'events' && <EventLog events={events} onRefresh={loadAdminData} />}
             {activeTab === 'settings' && (
               <div className="adm-section">

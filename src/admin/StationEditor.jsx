@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { api } from '../api'
 import ImageUploader from './ImageUploader'
+import QRGenerator from './QRGenerator'
 
 // ─── Per-game-type form builders ───────────────────────────────────────────
 function ZoomForm({ config, onChange }) {
@@ -484,10 +485,17 @@ export default function StationEditor({ stations, onRefresh }) {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
   const [rawMode, setRawMode] = useState(false)
+  const [showQRModal, setShowQRModal] = useState(false)
+  const [qrStation, setQrStation] = useState(null)
 
   const showMsg = (type, text) => {
     setMessage({ type, text })
     setTimeout(() => setMessage(null), 4000)
+  }
+
+  const handleOpenQR = (st = null) => {
+    setQrStation(st)
+    setShowQRModal(true)
   }
 
   const handleEdit = (st) => {
@@ -548,11 +556,16 @@ export default function StationEditor({ stations, onRefresh }) {
       <div className="adm-section-header">
         <div>
           <h2 className="adm-section-title">Stations & Games</h2>
-          <p className="adm-section-sub">Configure game content, upload photos, set questions, and manage hints</p>
+          <p className="adm-section-sub">Configure game content, upload photos, set questions, and generate QR codes</p>
         </div>
-        <button className="adm-btn adm-btn--secondary adm-btn--sm" onClick={onRefresh}>
-          Refresh
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="adm-btn adm-btn--primary adm-btn--sm" onClick={() => handleOpenQR(null)}>
+            📷 QR Codes & Posters
+          </button>
+          <button className="adm-btn adm-btn--secondary adm-btn--sm" onClick={onRefresh}>
+            Refresh
+          </button>
+        </div>
       </div>
 
       {message && <div className={`adm-alert adm-alert--${message.type}`}>{message.text}</div>}
@@ -573,9 +586,14 @@ export default function StationEditor({ stations, onRefresh }) {
                 </div>
                 <div style={{ fontSize: 12, color: '#64748b', fontFamily: 'var(--font-mono)' }}>{st.game_type}</div>
               </div>
-              <button className="adm-btn adm-btn--secondary adm-btn--sm" onClick={() => handleEdit(st)}>
-                Configure & Upload Photo
-              </button>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button className="adm-btn adm-btn--ghost adm-btn--sm" onClick={() => handleOpenQR(st)}>
+                  📷 QR Code
+                </button>
+                <button className="adm-btn adm-btn--secondary adm-btn--sm" onClick={() => handleEdit(st)}>
+                  Configure & Upload Photo
+                </button>
+              </div>
             </div>
             {st.hint_text && (
               <div className="adm-station-hint">
@@ -585,6 +603,15 @@ export default function StationEditor({ stations, onRefresh }) {
           </div>
         ))}
       </div>
+
+      {/* QR Code & Poster Generator Modal */}
+      {showQRModal && (
+        <QRGenerator
+          stations={stations}
+          selectedStation={qrStation}
+          onClose={() => setShowQRModal(false)}
+        />
+      )}
 
       {/* Edit Modal */}
       {editing && (
