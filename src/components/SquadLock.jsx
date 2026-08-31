@@ -11,29 +11,16 @@ export default function SquadLock({ teams, onLockSuccess }) {
   }
 
   return (
-    <div className="app-screen animate-fadeIn" style={{ padding: '24px 16px' }}>
+    <div className="app-screen animate-fadeIn" style={{ padding: '16px', gap: 16 }}>
       {/* Header Banner */}
-      <div style={{ textAlign: 'center', marginBottom: 20 }}>
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '4px 12px',
-            borderRadius: 'var(--radius-full)',
-            background: 'rgba(79, 70, 229, 0.1)',
-            color: 'var(--accent)',
-            fontSize: 12,
-            fontWeight: 700,
-            marginBottom: 8
-          }}
-        >
+      <div className="card card--accent" style={{ textAlign: 'center', padding: '24px 16px', margin: 0 }}>
+        <div className="badge badge--accent" style={{ marginBottom: 8 }}>
           ONE-TIME SQUAD REGISTRATION
         </div>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
+        <h1 className="heading-2" style={{ color: 'var(--text-primary)', fontSize: 24, fontWeight: 800 }}>
           Identify Your Squad
         </h1>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4, maxWidth: 320, margin: '4px auto 0' }}>
+        <p className="text-secondary text-xs" style={{ maxWidth: 340, margin: '6px auto 0', lineHeight: 1.5 }}>
           Select your official team. Your phone will be locked to this squad for the entire campus exploration.
         </p>
       </div>
