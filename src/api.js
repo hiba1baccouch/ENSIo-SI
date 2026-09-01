@@ -56,4 +56,6 @@ export const api = {
   adminGetSettings: () => request('/admin/settings', { headers: adminHeaders() }),
   adminUpdateSetting: (key, value) =>
     request('/admin/settings', { method: 'PUT', body: { key, value }, headers: adminHeaders() }),
+  adminArrivalBonus: (stationId, arrivals) =>
+    request('/admin/arrival-bonus', { method: 'POST', body: { stationId, arrivals }, headers: adminHeaders() }),
 }

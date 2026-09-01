@@ -408,6 +408,44 @@ app.get('/api/admin/settings', adminAuth, (req, res) => {
   res.json(obj)
 })
 
+// ─── ARRIVAL BONUS ENDPOINT ────────────────────────────────
+// Admin awards physical arrival points (100 / 75 / 50 / 0)
+// POST /api/admin/arrival-bonus
+// Body: { stationId, arrivals: [{ teamId, rank }] }
+// rank 1 → 100pts, rank 2 → 75pts, rank 3 → 50pts, rank 4+ → 0pts
+app.post('/api/admin/arrival-bonus', adminAuth, (req, res) => {
+  const { stationId, arrivals } = req.body || {}
+  if (!stationId || !Array.isArray(arrivals)) {
+    return res.status(400).json({ error: 'stationId and arrivals array are required' })
+  }
+
+  const RANK_POINTS = { 1: 100, 2: 75, 3: 50 }
+
+  const results = []
+  const updateTeamScore = db.prepare('UPDATE teams SET score = score + ? WHERE id = ?')
+  const logEvent = db.prepare(
+    "INSERT INTO game_events (team_id, station_id, event_type, points_delta, metadata) VALUES (?, ?, 'arrival_bonus', ?, ?)"
+  )
+
+  for (const { teamId, rank } of arrivals) {
+    const points = RANK_POINTS[rank] || 0
+    if (points > 0) {
+      updateTeamScore.run(points, teamId)
+    }
+    logEvent.run(
+      teamId,
+      parseInt(stationId),
+      points,
+      JSON.stringify({ rank, bonus_type: 'physical_arrival', station_id: stationId })
+    )
+    results.push({ teamId, rank, points_awarded: points })
+  }
+
+  res.json({ success: true, results })
+})
+
+
+
 // ─── VALIDATION LOGIC ─────────────────────────────────────
 function validateAnswer(gameType, config, answer, progress) {
   switch (gameType) {
