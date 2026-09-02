@@ -263,12 +263,7 @@ function PosterCard({ station, qrDataUrl, targetUrl, onDownload }) {
         ENISo Integration Week
       </div>
 
-      {/* Station Number & Name - hidden when printing */}
-      <div className="poster-checkpoint-header">
-        <h2 style={{ fontSize: 24, fontWeight: 900, color: '#0f172a', margin: '4px 0 2px', letterSpacing: '-0.02em' }}>
-          STATION #{station.id}
-        </h2>
-      </div>
+
 
       {/* High-Resolution QR Code */}
       <div
