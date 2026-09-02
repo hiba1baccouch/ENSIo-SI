@@ -6,7 +6,7 @@ export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading
   const [shakeId, setShakeId] = useState(null)
 
   const options = config.options || []
-  const question = config.question || 'Où a été prise cette photo sur le campus ?'
+  const question = config.question || 'Where was this photo taken on campus?'
   const category = config.category || 'Campus Quiz'
   const questionNumber = config.question_number || 1
   const totalQuestions = config.total_questions || 7
@@ -250,7 +250,7 @@ export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading
               animation: 'fadeIn 0.2s ease',
             }}
           >
-            ❌ Mauvaise réponse — Essayez une autre option !
+            ❌ Incorrect answer — Try another option!
           </div>
         )}
 
@@ -339,7 +339,7 @@ export default function ZoomGame({ config, onValidate, attemptsUsed = 0, loading
             boxShadow: selectedOption ? '0 6px 20px rgba(79,70,229,0.35)' : 'none',
           }}
         >
-          {loading ? 'Vérification...' : 'Valider →'}
+          {loading ? 'Verifying...' : 'Submit Answer →'}
         </button>
       </div>
 

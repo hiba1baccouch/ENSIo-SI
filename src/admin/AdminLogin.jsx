@@ -15,6 +15,7 @@ export default function AdminLogin({ onLoginSuccess }) {
       const res = await api.adminLogin(password.trim())
       if (res.success && res.key) {
         sessionStorage.setItem('admin_key', res.key)
+        localStorage.setItem('admin_key', res.key)
         onLoginSuccess()
       }
     } catch (err) {

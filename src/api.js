@@ -4,6 +4,7 @@ const API_BASE = '/api'
 async function request(path, options = {}) {
   const url = `${API_BASE}${path}`
   const config = {
+    cache: 'no-store',
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   }
@@ -19,7 +20,7 @@ async function request(path, options = {}) {
 }
 
 function adminHeaders() {
-  const key = sessionStorage.getItem('admin_key')
+  const key = sessionStorage.getItem('admin_key') || localStorage.getItem('admin_key')
   return key ? { 'x-admin-key': key } : {}
 }
 

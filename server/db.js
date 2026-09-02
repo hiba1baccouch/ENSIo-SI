@@ -86,10 +86,11 @@ export function initializeDatabase() {
     );
   `)
 
-  // Check if we need to seed or update teams to 10 and stations to 7
+  // Check if we need to seed or update teams to 10 and stations to 7 (or update French defaults to English)
   const teamCount = db.prepare('SELECT COUNT(*) as count FROM teams').get().count
   const stationCount = db.prepare('SELECT COUNT(*) as count FROM stations').get().count
-  if (teamCount < 10 || stationCount < 7) {
+  const s1 = db.prepare('SELECT hint_text FROM stations WHERE id = 1').get()
+  if (teamCount < 10 || stationCount < 7 || (s1?.hint_text && s1.hint_text.includes('prochaine'))) {
     seedDefaultData()
   }
 }
@@ -124,13 +125,13 @@ export function seedDefaultData() {
   }
 
   const defaultStations = [
-    { id: 1, name: 'ZOOM', game_type: 'zoom', order_index: 1, hint_text: 'La prochaine étape est là où des centaines d’étudiants peuvent écouter une seule voix.', points_reward: 100 },
-    { id: 2, name: 'MEMORY GLITCH', game_type: 'memory_glitch', order_index: 2, hint_text: 'Vous venez de voir votre prochaine destination. Maintenant, trouvez-la dans l’ENISo.', points_reward: 100 },
-    { id: 3, name: 'FIND THE DIFFERENCE', game_type: 'find_difference', order_index: 3, hint_text: 'Rendez-vous là où le sol rencontre le ciel et où les étudiants se rassemblent entre les cours.', points_reward: 100 },
-    { id: 4, name: 'DIGITAL ESCAPE', game_type: 'digital_escape', order_index: 4, hint_text: 'Votre prochaine étape se trouve là où les décisions importantes sont prises.', points_reward: 100 },
-    { id: 5, name: 'THE MAP IS LYING', game_type: 'map_lying', order_index: 5, hint_text: 'La carte vous montre ce qui est faux. Maintenant, trouvez ce qui est vrai.', points_reward: 100 },
-    { id: 6, name: 'HIDDEN MESSAGE', game_type: 'hidden_message', order_index: 6, hint_text: 'Le mot secret vous guide vers les Laboratoires de Recherche et d’Innovation.', points_reward: 100 },
-    { id: 7, name: 'ENISo EMOJI CODE', game_type: 'emoji_code', order_index: 7, hint_text: 'Félicitations ! Rejoignez le point de rassemblement central pour la cérémonie finale de clôture.', points_reward: 100 },
+    { id: 1, name: 'ZOOM', game_type: 'zoom', order_index: 1, hint_text: 'The next checkpoint is where hundreds of students can gather to listen to a single voice.', points_reward: 100 },
+    { id: 2, name: 'MEMORY GLITCH', game_type: 'memory_glitch', order_index: 2, hint_text: 'You have just seen your next destination. Now, find it inside the campus.', points_reward: 100 },
+    { id: 3, name: 'FIND THE DIFFERENCE', game_type: 'find_difference', order_index: 3, hint_text: 'Head to where the ground meets the open sky and students gather between classes.', points_reward: 100 },
+    { id: 4, name: 'DIGITAL ESCAPE', game_type: 'digital_escape', order_index: 4, hint_text: 'Your next checkpoint is located where important campus decisions are made.', points_reward: 100 },
+    { id: 5, name: 'THE MAP IS LYING', game_type: 'map_lying', order_index: 5, hint_text: 'The map showed you what was false. Now, go discover what is true.', points_reward: 100 },
+    { id: 6, name: 'HIDDEN MESSAGE', game_type: 'hidden_message', order_index: 6, hint_text: 'The secret codeword guides you to the Research and Innovation Laboratories.', points_reward: 100 },
+    { id: 7, name: 'ENISo EMOJI CODE', game_type: 'emoji_code', order_index: 7, hint_text: 'Congratulations! Proceed to the central gathering point for the grand closing ceremony.', points_reward: 100 },
   ]
 
   const insertStation = db.prepare(
@@ -146,13 +147,13 @@ export function seedDefaultData() {
   const defaultConfigs = {
     1: {
       image: '',
-      question: 'Où a été prise cette photo sur le campus de l’ENISo ?',
-      category: 'Observation & Reconnaissance',
+      question: 'Where was this photo taken on the ENISo campus?',
+      category: 'Observation & Recognition',
       options: [
-        { id: 'a', text: 'Amphithéâtre Principal', correct: true },
-        { id: 'b', text: 'Entrée Bibliothèque', correct: false },
-        { id: 'c', text: 'Aile Cafétéria', correct: false },
-        { id: 'd', text: 'Laboratoire de Robotique', correct: false },
+        { id: 'a', text: 'Main Amphitheater', correct: true },
+        { id: 'b', text: 'Library Entrance', correct: false },
+        { id: 'c', text: 'Cafeteria Wing', correct: false },
+        { id: 'd', text: 'Robotics Laboratory', correct: false },
       ],
       max_attempts: 3,
     },
@@ -160,11 +161,11 @@ export function seedDefaultData() {
       image: '',
       display_time: 12,
       questions: [
-        { id: 'q1', text: 'De quelle couleur était la porte sur la photo ?', options: ['Rouge', 'Bleue', 'Verte', 'Jaune'], correct: 0 },
-        { id: 'q2', text: 'Combien de fenêtres étaient visibles ?', options: ['2', '3', '4', '5'], correct: 2 },
-        { id: 'q3', text: 'Que pouvait-on lire sur le panneau ?', options: ['ENISo', 'Sortie', 'Bienvenue', 'Bibliothèque'], correct: 0 },
-        { id: 'q4', text: 'Dans quelle direction pointait la flèche ?', options: ['Gauche', 'Droite', 'Haut', 'Bas'], correct: 1 },
-        { id: 'q5', text: 'Quel objet était posé sur la table ?', options: ['Livre', 'Ordinateur', 'Plante', 'Tasse'], correct: 2 },
+        { id: 'q1', text: 'What color was the door in the photo?', options: ['Red', 'Blue', 'Green', 'Yellow'], correct: 0 },
+        { id: 'q2', text: 'How many windows were visible?', options: ['2', '3', '4', '5'], correct: 2 },
+        { id: 'q3', text: 'What was written on the sign?', options: ['ENISo', 'Exit', 'Welcome', 'Library'], correct: 0 },
+        { id: 'q4', text: 'In which direction was the arrow pointing?', options: ['Left', 'Right', 'Up', 'Down'], correct: 1 },
+        { id: 'q5', text: 'What object was placed on the table?', options: ['Book', 'Computer', 'Plant', 'Cup'], correct: 2 },
       ],
       required_correct: 4,
       max_retries: 2,
@@ -173,11 +174,11 @@ export function seedDefaultData() {
       image_original: '',
       image_modified: '',
       differences: [
-        { id: 'd1', x: 15, y: 20, radius: 5, label: 'Fenêtre manquante' },
-        { id: 'd2', x: 45, y: 35, radius: 5, label: 'Changement de couleur' },
-        { id: 'd3', x: 70, y: 50, radius: 5, label: 'Arbre supplémentaire' },
-        { id: 'd4', x: 30, y: 70, radius: 5, label: 'Panneau disparu' },
-        { id: 'd5', x: 80, y: 15, radius: 5, label: 'Drapeau modifié' },
+        { id: 'd1', x: 15, y: 20, radius: 5, label: 'Missing window' },
+        { id: 'd2', x: 45, y: 35, radius: 5, label: 'Color alteration' },
+        { id: 'd3', x: 70, y: 50, radius: 5, label: 'Extra tree' },
+        { id: 'd4', x: 30, y: 70, radius: 5, label: 'Missing signpost' },
+        { id: 'd5', x: 80, y: 15, radius: 5, label: 'Modified flag' },
       ],
       required_found: 5,
       click_tolerance: 10,
@@ -187,33 +188,33 @@ export function seedDefaultData() {
         {
           id: 'p1',
           type: 'logical_sequence',
-          title: 'Suite Logique',
-          prompt: 'Quel est le nombre suivant dans la suite : 2, 6, 12, 20, 30, ?',
+          title: 'Logical Sequence',
+          prompt: 'What is the next number in the sequence: 2, 6, 12, 20, 30, ?',
           answer: '42',
-          hint: 'Observez l’écart entre deux nombres consécutifs (+4, +6, +8, +10...).',
+          hint: 'Observe the difference between consecutive numbers (+4, +6, +8, +10...).',
         },
         {
           id: 'p2',
           type: 'visual_pattern',
-          title: 'Pattern Visuel',
-          prompt: 'Complétez la suite : ▲●▲▲●●▲▲▲●●●?',
+          title: 'Visual Pattern',
+          prompt: 'Complete the sequence: ▲●▲▲●●▲▲▲●●●?',
           answer: '▲▲▲▲',
           options: ['▲▲▲▲', '●●●●', '▲●▲●', '●▲●▲'],
-          hint: 'Comptez le nombre de répétitions par groupe croissant.',
+          hint: 'Count the number of repetitions in increasing groups.',
         },
         {
           id: 'p3',
           type: 'scrambled_word',
-          title: 'Lettres à Remettre dans l’Ordre',
-          prompt: 'Remettez les lettres dans l’ordre : NOIITNRGAET KEWE',
+          title: 'Unscramble the Letters',
+          prompt: 'Unscramble the letters: NOIITNRGAET KEWE',
           answer: 'INTEGRATION WEEK',
-          hint: 'C’est le nom officiel de cet événement.',
+          hint: 'It is the official name of this event.',
         },
       ],
     },
     5: {
       map_image: '',
-      anomaly: { x: 55, y: 40, radius: 8, description: 'Ce bâtiment n’existe pas sur le campus réel.' },
+      anomaly: { x: 55, y: 40, radius: 8, description: 'This building does not exist on the real campus.' },
       click_tolerance: 12,
       max_attempts: 5,
     },
@@ -233,32 +234,32 @@ export function seedDefaultData() {
           id: 'r1',
           emojis: '🪜 + 🚪 + 2️⃣',
           difficulty: 'easy',
-          answer: 'Escalier 2ème étage',
-          options: ['Escalier 2ème étage', 'Ascenseur Principal', 'Porte de Secours', 'Entrée Amphi'],
+          answer: '2nd Floor Staircase',
+          options: ['2nd Floor Staircase', 'Main Elevator', 'Emergency Exit', 'Amphitheater Entrance'],
           type: 'multiple_choice',
         },
         {
           id: 'r2',
           emojis: '🏫 + 📐 + ✏️ + 🎓',
           difficulty: 'easy',
-          answer: 'École d’Ingénieurs',
-          options: ['École d’Ingénieurs', 'Musée d’Art', 'Hôpital', 'Stade'],
+          answer: 'Engineering School',
+          options: ['Engineering School', 'Art Museum', 'Hospital', 'Stadium'],
           type: 'multiple_choice',
         },
         {
           id: 'r3',
           emojis: '☕ + 📚 + 🤫 + 🪑',
           difficulty: 'medium',
-          answer: 'Bibliothèque',
-          options: ['Cafétéria', 'Bibliothèque', 'Salle de TP', 'Administration'],
+          answer: 'Library',
+          options: ['Cafeteria', 'Library', 'Lab Room', 'Administration'],
           type: 'multiple_choice',
         },
         {
           id: 'r4',
           emojis: '💻 + 🧑‍💻 + 🔌 + 🖥️',
           difficulty: 'medium',
-          answer: 'Centre de Calcul',
-          options: ['Centre de Calcul', 'Cybercafé', 'Amphi', 'Bureau des Clubs'],
+          answer: 'Computing Center',
+          options: ['Computing Center', 'Cybercafe', 'Amphitheater', 'Clubs Office'],
           type: 'multiple_choice',
         },
       ],

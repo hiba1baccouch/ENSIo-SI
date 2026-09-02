@@ -11,7 +11,7 @@ import ArrivalScorer from '../admin/ArrivalScorer'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(Boolean(sessionStorage.getItem('admin_key')))
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(sessionStorage.getItem('admin_key') || localStorage.getItem('admin_key')))
   const [activeTab, setActiveTab] = useState('teams')
   const [teams, setTeams] = useState([])
   const [stations, setStations] = useState([])
@@ -37,6 +37,7 @@ export default function AdminPage() {
       console.error('Failed to load admin data', err)
       if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
         sessionStorage.removeItem('admin_key')
+        localStorage.removeItem('admin_key')
         setIsAuthenticated(false)
       }
     } finally {
@@ -46,7 +47,11 @@ export default function AdminPage() {
 
   useEffect(() => { if (isAuthenticated) loadAdminData() }, [isAuthenticated])
 
-  const handleLogout = () => { sessionStorage.removeItem('admin_key'); setIsAuthenticated(false) }
+  const handleLogout = () => {
+    sessionStorage.removeItem('admin_key')
+    localStorage.removeItem('admin_key')
+    setIsAuthenticated(false)
+  }
 
   const handleUpdateSetting = async (key, value) => {
     try {
@@ -93,7 +98,7 @@ export default function AdminPage() {
 
       {/* Content */}
       <div className="adm-container">
-        {loading ? (
+        {loading && stations.length === 0 ? (
           <LoadingSpinner text="Loading..." />
         ) : (
           <>

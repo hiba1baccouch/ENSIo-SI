@@ -486,11 +486,11 @@ export default function StationEditor({ stations, onRefresh }) {
   const [message, setMessage] = useState(null)
   const [rawMode, setRawMode] = useState(false)
   const [showQRModal, setShowQRModal] = useState(false)
-  const [qrStation, setQrStation] = useState(null)
+  const [modalError, setModalError] = useState(null)
 
   const showMsg = (type, text) => {
     setMessage({ type, text })
-    setTimeout(() => setMessage(null), 4000)
+    setTimeout(() => setMessage(null), 5000)
   }
 
   const handleOpenQR = (st = null) => {
@@ -501,6 +501,7 @@ export default function StationEditor({ stations, onRefresh }) {
   const handleEdit = (st) => {
     setEditing(st)
     setRawMode(false)
+    setModalError(null)
     setForm({
       name: st.name,
       hint_text: st.hint_text || '',
@@ -515,12 +516,15 @@ export default function StationEditor({ stations, onRefresh }) {
     if (!editing || loading) return
     try {
       setLoading(true)
+      setModalError(null)
       await api.adminUpdateStation(editing.id, { ...form })
       setEditing(null)
-      showMsg('success', `Station ${editing.id} saved successfully.`)
-      onRefresh()
+      showMsg('success', `Station ${editing.id} saved successfully!`)
+      if (onRefresh) await onRefresh()
     } catch (err) {
-      showMsg('error', err.message)
+      console.error('Save failed:', err)
+      setModalError(err.message || 'Failed to save station')
+      showMsg('error', err.message || 'Failed to save station')
     } finally {
       setLoading(false)
     }
@@ -685,6 +689,12 @@ export default function StationEditor({ stations, onRefresh }) {
 
                 {/* Per-game form with ImageUploader */}
                 {renderGameForm(editing.game_type, form.config, (cfg) => setForm({ ...form, config: cfg }))}
+
+                {modalError && (
+                  <div style={{ marginTop: 16, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626', fontSize: 13 }}>
+                    ⚠️ {modalError}
+                  </div>
+                )}
               </div>
 
               <div className="adm-modal__footer">

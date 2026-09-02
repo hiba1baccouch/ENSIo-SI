@@ -307,6 +307,7 @@ app.get('/api/admin/teams', adminAuth, (req, res) => {
 
 // Get all stations with configs (Admin)
 app.get('/api/admin/stations', adminAuth, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
   const stations = db.prepare('SELECT * FROM stations ORDER BY order_index').all()
   const enriched = stations.map(station => {
     const config = db.prepare('SELECT config_json FROM game_configs WHERE station_id = ?').get(station.id)
@@ -317,27 +318,42 @@ app.get('/api/admin/stations', adminAuth, (req, res) => {
 
 // Update station config (Admin)
 app.put('/api/admin/stations/:stationId', adminAuth, (req, res) => {
-  const stationId = parseInt(req.params.stationId)
-  const { name, hint_text, points_reward, is_enabled, config } = req.body || {}
+  try {
+    const stationId = parseInt(req.params.stationId)
+    const { name, hint_text, points_reward, is_enabled, config } = req.body || {}
 
-  if (name || hint_text !== undefined || points_reward !== undefined || is_enabled !== undefined) {
     const updates = []
     const values = []
-    if (name) { updates.push('name = ?'); values.push(name) }
+    if (name !== undefined) { updates.push('name = ?'); values.push(name) }
     if (hint_text !== undefined) { updates.push('hint_text = ?'); values.push(hint_text) }
     if (points_reward !== undefined) { updates.push('points_reward = ?'); values.push(points_reward) }
     if (is_enabled !== undefined) { updates.push('is_enabled = ?'); values.push(is_enabled ? 1 : 0) }
-    values.push(stationId)
-    db.prepare(`UPDATE stations SET ${updates.join(', ')} WHERE id = ?`).run(...values)
-  }
 
-  if (config) {
-    db.prepare(
-      "INSERT OR REPLACE INTO game_configs (station_id, config_json, updated_at) VALUES (?, ?, datetime('now'))"
-    ).run(stationId, JSON.stringify(config))
-  }
+    if (updates.length > 0) {
+      values.push(stationId)
+      db.prepare(`UPDATE stations SET ${updates.join(', ')} WHERE id = ?`).run(...values)
+    }
 
-  res.json({ success: true })
+    if (config) {
+      db.prepare(
+        `INSERT INTO game_configs (station_id, config_json, updated_at) VALUES (?, ?, datetime('now'))
+         ON CONFLICT(station_id) DO UPDATE SET config_json = excluded.config_json, updated_at = datetime('now')`
+      ).run(stationId, JSON.stringify(config))
+    }
+
+    // Fetch updated station to return immediately
+    const updatedStation = db.prepare('SELECT * FROM stations WHERE id = ?').get(stationId)
+    const updatedConfig = db.prepare('SELECT config_json FROM game_configs WHERE station_id = ?').get(stationId)
+    const fullStation = {
+      ...updatedStation,
+      config: updatedConfig ? JSON.parse(updatedConfig.config_json) : {}
+    }
+
+    res.json({ success: true, station: fullStation })
+  } catch (err) {
+    console.error('Error saving station:', err)
+    res.status(500).json({ error: err.message || 'Failed to update station' })
+  }
 })
 
 // Update team (Admin)
