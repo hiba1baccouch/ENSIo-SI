@@ -49,7 +49,7 @@ export default function HomePage() {
   }
 
   const currentStationNum = myStats.current_station || 1
-  const completedAll = myStats.completed_count >= 7
+  const completedAll = myStats.completed_count >= 4
 
   return (
     <div className="app-screen animate-fadeIn">
@@ -72,7 +72,7 @@ export default function HomePage() {
 
       <div className="page-header">
         <h1 className="page-title">Mission Hub</h1>
-        <p className="page-subtitle">Rank #{myStats.rank} • {myStats.completed_count}/7 Solved</p>
+        <p className="page-subtitle">Rank #{myStats.rank} • {myStats.completed_count}/4 Solved</p>
       </div>
 
       {/* ─── Mission Hub & QR Scanner Trigger Card ─── */}
@@ -87,7 +87,7 @@ export default function HomePage() {
               Squad {myStats.name} (YOU)
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-              Progress: <strong>{myStats.completed_count} / 7</strong> Challenges Solved
+              Progress: <strong>{myStats.completed_count} / 4</strong> Challenges Solved
             </div>
           </div>
 
@@ -127,7 +127,7 @@ export default function HomePage() {
 
             <p className="challenge-card__prompt" style={{ marginTop: 6 }}>
               {completedAll 
-                ? 'Your squad has solved all 7 campus challenges! Return to the central ceremony.'
+                ? 'Your squad has solved all 4 campus challenges! Return to the central ceremony.'
                 : `Navigate to your next physical location on campus and scan the posted QR code to unlock Challenge ${currentStationNum}.`}
             </p>
           </div>

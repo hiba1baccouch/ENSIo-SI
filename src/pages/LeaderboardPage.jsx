@@ -99,13 +99,13 @@ export default function LeaderboardPage() {
                 </div>
                 <div className="flex items-center gap-2" style={{ marginTop: 4 }}>
                   <span className="text-xs text-secondary font-mono">
-                    Station {team.current_station || 1} / 7
+                    Station {team.current_station || 1} / 4
                   </span>
                   <div className="progress" style={{ width: 80, height: 4 }}>
                     <div
                       className="progress__fill"
                       style={{
-                        width: `${Math.min(((team.current_station || 1) / 7) * 100, 100)}%`,
+                        width: `${Math.min(((team.current_station || 1) / 4) * 100, 100)}%`,
                         background: team.color
                       }}
                     />

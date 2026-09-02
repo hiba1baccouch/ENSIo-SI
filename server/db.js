@@ -126,10 +126,7 @@ export function seedDefaultData() {
     { id: 1, name: 'ZOOM', game_type: 'zoom', order_index: 1, hint_text: 'La prochaine étape est là où des centaines d’étudiants peuvent écouter une seule voix.', points_reward: 100 },
     { id: 2, name: 'MEMORY GLITCH', game_type: 'memory_glitch', order_index: 2, hint_text: 'Vous venez de voir votre prochaine destination. Maintenant, trouvez-la dans l’ENISo.', points_reward: 100 },
     { id: 3, name: 'FIND THE DIFFERENCE', game_type: 'find_difference', order_index: 3, hint_text: 'Rendez-vous là où le sol rencontre le ciel et où les étudiants se rassemblent entre les cours.', points_reward: 100 },
-    { id: 4, name: 'DIGITAL ESCAPE', game_type: 'digital_escape', order_index: 4, hint_text: 'Votre prochaine étape se trouve là où les décisions importantes sont prises.', points_reward: 100 },
-    { id: 5, name: 'THE MAP IS LYING', game_type: 'map_lying', order_index: 5, hint_text: 'La carte vous montre ce qui est faux. Maintenant, trouvez ce qui est vrai.', points_reward: 100 },
-    { id: 6, name: 'HIDDEN MESSAGE', game_type: 'hidden_message', order_index: 6, hint_text: 'Le mot secret vous guide vers les Laboratoires de Recherche et d’Innovation.', points_reward: 100 },
-    { id: 7, name: 'ENISo EMOJI CODE', game_type: 'emoji_code', order_index: 7, hint_text: 'Félicitations ! Rejoignez le point de rassemblement central pour la cérémonie finale de clôture.', points_reward: 100 },
+    { id: 4, name: 'DIGITAL ESCAPE', game_type: 'digital_escape', order_index: 4, hint_text: 'Félicitations ! Rejoignez le point de rassemblement central pour la cérémonie finale de clôture.', points_reward: 100 },
   ]
 
   const insertStation = db.prepare(
@@ -209,58 +206,6 @@ export function seedDefaultData() {
           hint: 'C’est le nom officiel de cet événement.',
         },
       ],
-    },
-    5: {
-      map_image: '',
-      anomaly: { x: 55, y: 40, radius: 8, description: 'Ce bâtiment n’existe pas sur le campus réel.' },
-      click_tolerance: 12,
-      max_attempts: 5,
-    },
-    6: {
-      image: '',
-      elements: [
-        { id: 'e1', x: 20, y: 35, radius: 6, letter: 'L' },
-        { id: 'e2', x: 50, y: 65, radius: 6, letter: 'A' },
-        { id: 'e3', x: 80, y: 25, radius: 6, letter: 'B' },
-      ],
-      final_word: 'LAB',
-      click_tolerance: 10,
-    },
-    7: {
-      rounds: [
-        {
-          id: 'r1',
-          emojis: '🪜 + 🚪 + 2️⃣',
-          difficulty: 'easy',
-          answer: 'Escalier 2ème étage',
-          options: ['Escalier 2ème étage', 'Ascenseur Principal', 'Porte de Secours', 'Entrée Amphi'],
-          type: 'multiple_choice',
-        },
-        {
-          id: 'r2',
-          emojis: '🏫 + 📐 + ✏️ + 🎓',
-          difficulty: 'easy',
-          answer: 'École d’Ingénieurs',
-          options: ['École d’Ingénieurs', 'Musée d’Art', 'Hôpital', 'Stade'],
-          type: 'multiple_choice',
-        },
-        {
-          id: 'r3',
-          emojis: '☕ + 📚 + 🤫 + 🪑',
-          difficulty: 'medium',
-          answer: 'Bibliothèque',
-          options: ['Cafétéria', 'Bibliothèque', 'Salle de TP', 'Administration'],
-          type: 'multiple_choice',
-        },
-        {
-          id: 'r4',
-          emojis: '🔬 + ⚗️ + 🧪 + 🥽',
-          difficulty: 'hard',
-          answer: 'Laboratoire',
-          type: 'text_input',
-        },
-      ],
-      required_correct: 3,
     },
   }
 
