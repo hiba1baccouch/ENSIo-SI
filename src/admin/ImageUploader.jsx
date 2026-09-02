@@ -20,7 +20,14 @@ export default function ImageUploader({ label = 'Station Image', value = '', onC
 
     try {
       setCompressing(true)
-      const compressedDataUrl = await compressImage(file, 1200, 0.82)
+      // Compress aggressively: 800px max, 0.65 quality to stay under Vercel's 4.5 MB limit
+      const compressedDataUrl = await compressImage(file, 800, 0.65)
+      // Safety check: warn if still too large (over 1.5 MB as base64)
+      const sizeKB = Math.round(compressedDataUrl.length * 0.75 / 1024)
+      if (sizeKB > 1500) {
+        alert(`Image is ${sizeKB} KB after compression. This may be too large. Please use a smaller image.`)
+        return
+      }
       onChange(compressedDataUrl)
       setUrlInput(compressedDataUrl)
     } catch (err) {
@@ -109,8 +116,10 @@ export default function ImageUploader({ label = 'Station Image', value = '', onC
               borderTop: '1px solid #e2e8f0'
             }}
           >
-            <span style={{ fontSize: 11, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
-              {value.startsWith('data:') ? '✓ Compressed Image' : value}
+            <span style={{ fontSize: 11, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
+              {value.startsWith('data:')
+                ? `✓ Compressed — ${Math.round(value.length * 0.75 / 1024)} KB`
+                : value}
             </span>
 
             <div style={{ display: 'flex', gap: 6 }}>
@@ -198,7 +207,7 @@ export default function ImageUploader({ label = 'Station Image', value = '', onC
 /**
  * Client-side canvas image compressor
  */
-function compressImage(file, maxDimension = 1200, quality = 0.82) {
+function compressImage(file, maxDimension = 800, quality = 0.65) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onerror = reject

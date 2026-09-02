@@ -4,9 +4,7 @@ import { Html5Qrcode } from 'html5-qrcode'
 
 export default function QRScannerModal({ onClose }) {
   const navigate = useNavigate()
-  const [manualCode, setManualCode] = useState('')
   const [cameraError, setCameraError] = useState(null)
-  const [scanning, setScanning] = useState(true)
   const qrRef = useRef(null)
 
   useEffect(() => {
@@ -24,17 +22,13 @@ export default function QRScannerModal({ onClose }) {
             qrbox: { width: 220, height: 220 },
           },
           (decodedText) => {
-            // Handle QR decode
             handleDecodedPayload(decodedText)
           },
-          (error) => {
-            // normal scanning frames
-          }
+          () => {}
         )
       } catch (err) {
         console.warn('Camera failed or blocked', err)
-        setCameraError('Camera access unavailable. Use manual beacon entry below.')
-        setScanning(false)
+        setCameraError('Camera access unavailable. Please allow camera permissions and try again.')
       }
     }
 
@@ -50,14 +44,12 @@ export default function QRScannerModal({ onClose }) {
   }, [])
 
   const handleDecodedPayload = (text) => {
-    // Stop scanning
     if (qrRef.current) {
       qrRef.current.stop().catch(() => {})
     }
 
-    // Extract station ID
-    // Support formats: /station/3, http://.../station/3, or simply 3
-    const match = text.match(/station\/([0-9]+)/i) || text.match(/^([1-7])$/)
+    // Support formats: /station/3, http://.../station/3
+    const match = text.match(/station\/([0-9]+)/i)
     if (match) {
       const stationId = match[1]
       navigate(`/station/${stationId}`)
@@ -65,12 +57,6 @@ export default function QRScannerModal({ onClose }) {
     } else {
       alert(`Scanned data unrecognized: "${text}". Expected an ENISo Station QR Code.`)
     }
-  }
-
-  const handleManualSubmit = (e) => {
-    e.preventDefault()
-    if (!manualCode.trim()) return
-    handleDecodedPayload(manualCode.trim())
   }
 
   return (
@@ -126,33 +112,9 @@ export default function QRScannerModal({ onClose }) {
           )}
         </div>
 
-        <p style={{ fontSize: 12, textAlign: 'center', color: 'var(--text-secondary)' }}>
+        <p style={{ fontSize: 12, textAlign: 'center', color: 'var(--text-secondary)', marginTop: 12 }}>
           Point your phone camera directly at the QR code posted at your next station.
         </p>
-
-        {/* Manual Station Backup */}
-        <form onSubmit={handleManualSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-          <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-            OR ENTER BEACON PIN / NUMBER (1–7):
-          </label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input
-              type="text"
-              placeholder="e.g. 1, 2, 3..."
-              value={manualCode}
-              onChange={(e) => setManualCode(e.target.value)}
-              className="font-mono text-center"
-              style={{ flex: 1, padding: '10px 14px', borderRadius: 'var(--radius-sm)' }}
-            />
-            <button
-              type="submit"
-              className="btn-primary"
-              style={{ width: 'auto', padding: '10px 16px', minHeight: 0 }}
-            >
-              Verify →
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   )
