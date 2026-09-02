@@ -7,6 +7,9 @@ export default function SquadLock({ teams, onLockSuccess }) {
   const handleConfirmLock = () => {
     if (!selectedTeam) return
     localStorage.setItem('eniso_locked_team_id', selectedTeam.id)
+    localStorage.setItem('eniso_locked_team_name', selectedTeam.name)
+    localStorage.setItem('eniso_locked_team_color', selectedTeam.color)
+    localStorage.setItem('eniso_locked_team_avatar', selectedTeam.avatar || '⚡')
     onLockSuccess(selectedTeam)
   }
 

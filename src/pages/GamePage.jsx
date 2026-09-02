@@ -160,7 +160,7 @@ export default function GamePage() {
     }
   }
 
-  const nextStationId = parseInt(stationId) < 4 ? parseInt(stationId) + 1 : null
+  const nextStationId = parseInt(stationId) < 7 ? parseInt(stationId) + 1 : null
 
   return (
     <div className="page" style={{ gap: 'var(--sp-4)', paddingBottom: 'var(--sp-12)' }}>
@@ -171,7 +171,7 @@ export default function GamePage() {
         teamColor={team.color}
         attemptsUsed={attemptsUsed}
         maxAttempts={station.config?.max_attempts || 0}
-        progress={((parseInt(stationId) - 1) / 4) * 100}
+        progress={((parseInt(stationId) - 1) / 7) * 100}
       />
 
       {/* Main Game Interface */}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import SquadLock from '../components/SquadLock'
 import QRScannerModal from '../components/QRScannerModal'
@@ -8,8 +8,15 @@ import LoadingSpinner from '../components/LoadingSpinner'
 export default function HomePage() {
   const navigate = useNavigate()
   const [teams, setTeams] = useState([])
-  const [myStats, setMyStats] = useState(null)
-  const [lockedTeamId, setLockedTeamId] = useState(localStorage.getItem('eniso_locked_team_id'))
+  const [lockedTeamId, setLockedTeamId] = useState(() => localStorage.getItem('eniso_locked_team_id'))
+  const [myStats, setMyStats] = useState(() => {
+    try {
+      const saved = localStorage.getItem('eniso_cached_my_stats')
+      return saved ? JSON.parse(saved) : null
+    } catch {
+      return null
+    }
+  })
   const [loading, setLoading] = useState(true)
   const [showScanner, setShowScanner] = useState(false)
 
@@ -18,12 +25,15 @@ export default function HomePage() {
     try {
       setLoading(true)
       const [allTeams, privateData] = await Promise.all([
-        api.getTeams(),
+        api.getTeams().catch(() => []),
         teamId ? api.getPrivateStats(teamId).catch(() => null) : null
       ])
-      setTeams(allTeams)
+      if (allTeams && allTeams.length > 0) {
+        setTeams(allTeams)
+      }
       if (privateData) {
         setMyStats(privateData)
+        localStorage.setItem('eniso_cached_my_stats', JSON.stringify(privateData))
       }
     } catch (err) {
       console.error('Failed to load mission data', err)
@@ -37,19 +47,47 @@ export default function HomePage() {
   }, [lockedTeamId])
 
   const handleSquadLocked = (team) => {
+    localStorage.setItem('eniso_locked_team_id', team.id)
     setLockedTeamId(team.id)
+
+    // Pre-seed local cached stats so UI renders instantly without waiting for network
+    const initialStats = {
+      id: team.id,
+      name: team.name,
+      color: team.color,
+      avatar: team.avatar || '⚡',
+      current_station: 1,
+      score: 0,
+      completed_count: 0
+    }
+    setMyStats(initialStats)
+    localStorage.setItem('eniso_cached_my_stats', JSON.stringify(initialStats))
+
     refreshStats(team.id)
   }
 
-  if (loading) return <LoadingSpinner text="Connecting to ENISo Command Feed..." />
+  // Only show full-screen spinner if we have neither cached stats nor squad locked
+  if (loading && !lockedTeamId && !myStats) {
+    return <LoadingSpinner text="Connecting to ENISo Command Feed..." />
+  }
 
   // If no squad locked yet -> Show 1-time selection screen
-  if (!lockedTeamId || !myStats) {
+  if (!lockedTeamId) {
     return <SquadLock teams={teams} onLockSuccess={handleSquadLocked} />
   }
 
-  const currentStationNum = myStats.current_station || 1
-  const completedAll = myStats.completed_count >= 4
+  // Fallback stats while first sync finishes
+  const stats = myStats || {
+    id: lockedTeamId,
+    name: localStorage.getItem('eniso_locked_team_name') || 'Squad',
+    avatar: localStorage.getItem('eniso_locked_team_avatar') || '⚡',
+    score: 0,
+    current_station: 1,
+    completed_count: 0
+  }
+
+  const currentStationNum = stats.current_station || 1
+  const completedAll = (stats.completed_count || 0) >= 7
 
   return (
     <div className="app-screen animate-fadeIn">
@@ -61,18 +99,18 @@ export default function HomePage() {
         </div>
         <div className="app-header__stats">
           <div className="stat-pill">
-            <span style={{ fontSize: 14 }}>{myStats.avatar || myStats.name.replace('Team ', 'T')}</span>
-            <span>{myStats.name}</span>
+            <span style={{ fontSize: 14 }}>{stats.avatar || (stats.name ? stats.name.replace('Team ', 'T') : '⚡')}</span>
+            <span>{stats.name}</span>
           </div>
           <div className="stat-pill">
-            <span style={{ color: 'var(--accent)' }}>{myStats.score} pts</span>
+            <span style={{ color: 'var(--accent)' }}>{stats.score || 0} pts</span>
           </div>
         </div>
       </div>
 
       <div className="page-header">
         <h1 className="page-title">Mission Hub</h1>
-        <p className="page-subtitle">Rank #{myStats.rank} • {myStats.completed_count}/4 Solved</p>
+        <p className="page-subtitle">{stats.completed_count || 0} / 7 Challenges Solved</p>
       </div>
 
       {/* ─── Mission Hub & QR Scanner Trigger Card ─── */}
@@ -84,16 +122,16 @@ export default function HomePage() {
               SQUAD STATUS (CONFIDENTIAL)
             </div>
             <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', marginTop: 2 }}>
-              Squad {myStats.name} (YOU)
+              Squad {stats.name} (YOU)
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
-              Progress: <strong>{myStats.completed_count} / 4</strong> Challenges Solved
+              Progress: <strong>{stats.completed_count || 0} / 7</strong> Challenges Solved
             </div>
           </div>
 
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 22, fontWeight: 800, color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
-              {myStats.score}
+              {stats.score || 0}
             </div>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)' }}>
               TOTAL POINTS
@@ -127,7 +165,7 @@ export default function HomePage() {
 
             <p className="challenge-card__prompt" style={{ marginTop: 6 }}>
               {completedAll 
-                ? 'Your squad has solved all 4 campus challenges! Return to the central ceremony.'
+                ? 'Your squad has solved all 7 campus challenges! Return to the central ceremony.'
                 : `Navigate to your next physical location on campus and scan the posted QR code to unlock Challenge ${currentStationNum}.`}
             </p>
           </div>
@@ -171,13 +209,6 @@ export default function HomePage() {
               <div style={{ fontSize: 9, color: 'var(--text-secondary)' }}>pts</div>
             </div>
           </div>
-        </div>
-
-        {/* Footer Nav */}
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '8px 4px' }}>
-          <Link to="/leaderboard" style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>
-            Your Squad Standing
-          </Link>
         </div>
       </div>
 

@@ -209,6 +209,9 @@ export default function QRGenerator({ stations, selectedStation = null, onClose 
           .poster-card * {
             visibility: visible !important;
           }
+          .poster-checkpoint-header {
+            display: none !important;
+          }
           .no-print {
             display: none !important;
           }
@@ -260,17 +263,11 @@ function PosterCard({ station, qrDataUrl, targetUrl, onDownload }) {
         ENISo Integration Week
       </div>
 
-      {/* Station Number & Name */}
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-          CAMPUS CHECKPOINT
-        </div>
-        <h2 style={{ fontSize: 26, fontWeight: 900, color: '#0f172a', margin: '4px 0 2px', letterSpacing: '-0.02em' }}>
+      {/* Station Number & Name - hidden when printing */}
+      <div className="poster-checkpoint-header">
+        <h2 style={{ fontSize: 24, fontWeight: 900, color: '#0f172a', margin: '4px 0 2px', letterSpacing: '-0.02em' }}>
           STATION #{station.id}
         </h2>
-        <div style={{ fontSize: 18, fontWeight: 700, color: '#334155' }}>
-          {station.name}
-        </div>
       </div>
 
       {/* High-Resolution QR Code */}

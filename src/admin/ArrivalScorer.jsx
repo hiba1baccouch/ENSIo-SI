@@ -7,6 +7,13 @@ const RANK_CONFIG = [
   { rank: 3, label: '🥉 3rd to arrive', points: 50,  color: '#cd7c4f', bg: 'rgba(205,124,79,0.10)',  border: 'rgba(205,124,79,0.4)' },
 ]
 
+const PHYSICAL_GAMES = [
+  { id: 1, label: 'Game 1' },
+  { id: 2, label: 'Game 2' },
+  { id: 3, label: 'Game 3' },
+  { id: 4, label: 'Game 4' },
+]
+
 export default function ArrivalScorer({ stations, teams }) {
   const [selectedStation, setSelectedStation] = useState('')
   const [assignments, setAssignments] = useState({ 1: '', 2: '', 3: '' }) // rank → teamId
@@ -30,7 +37,7 @@ export default function ArrivalScorer({ stations, teams }) {
 
   const handleSubmit = async () => {
     if (!selectedStation) {
-      setError('Please select a station first.')
+      setError('Please select a game first (Game 1 to 4).')
       return
     }
     const filledRanks = Object.entries(assignments).filter(([, tid]) => !!tid)
@@ -64,7 +71,7 @@ export default function ArrivalScorer({ stations, teams }) {
         <div>
           <h2 className="adm-section-title">🏃 Physical Arrival Scorer</h2>
           <p className="adm-section-sub">
-            Award bonus points to the squads who physically arrive at a station first
+            Award bonus points to the squads who physically arrive at Game 1–4 first
           </p>
         </div>
       </div>
@@ -104,34 +111,34 @@ export default function ArrivalScorer({ stations, teams }) {
 
       <div className="adm-card" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-        {/* Step 1: Select station */}
+        {/* Step 1: Select physical game (1 to 4) */}
         <div>
           <div style={{ fontSize: 12, fontWeight: 800, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>
-            Step 1 — Select Station
+            Step 1 — Select Physical Station (Games 1 to 4)
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {stations.map(st => (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {PHYSICAL_GAMES.map(g => (
               <button
-                key={st.id}
+                key={g.id}
                 type="button"
-                onClick={() => { setSelectedStation(String(st.id)); setResult(null); setError(null) }}
+                onClick={() => { setSelectedStation(String(g.id)); setResult(null); setError(null) }}
                 style={{
-                  padding: '8px 16px',
+                  padding: '10px 20px',
                   borderRadius: 10,
-                  border: selectedStation === String(st.id)
+                  border: selectedStation === String(g.id)
                     ? '2px solid #4f46e5'
                     : '1.5px solid #e2e8f0',
-                  background: selectedStation === String(st.id)
+                  background: selectedStation === String(g.id)
                     ? 'rgba(79,70,229,0.08)'
                     : '#fff',
-                  color: selectedStation === String(st.id) ? '#4f46e5' : '#334155',
+                  color: selectedStation === String(g.id) ? '#4f46e5' : '#334155',
                   fontWeight: 700,
-                  fontSize: 13,
+                  fontSize: 14,
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
               >
-                #{st.id} {st.name}
+                🎮 {g.label}
               </button>
             ))}
           </div>
