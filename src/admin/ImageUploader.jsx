@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
+import { api } from '../api'
 
 /**
  * ImageUploader Component for Admin Panel
@@ -12,7 +13,13 @@ export default function ImageUploader({ label = 'Station Image', value = '', onC
   const [mode, setMode] = useState('upload') // 'upload' | 'url'
   const [urlInput, setUrlInput] = useState(value || '')
   const [compressing, setCompressing] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef(null)
+  const busy = compressing || uploading
+
+  useEffect(() => {
+    setUrlInput(value || '')
+  }, [value])
 
   const handleFileSelect = async (e) => {
     const file = e.target.files?.[0]
@@ -28,13 +35,18 @@ export default function ImageUploader({ label = 'Station Image', value = '', onC
         alert(`Image is ${sizeKB} KB after compression. This may be too large. Please use a smaller image.`)
         return
       }
-      onChange(compressedDataUrl)
-      setUrlInput(compressedDataUrl)
+
+      setCompressing(false)
+      setUploading(true)
+      const saved = await api.uploadImage(compressedDataUrl)
+      onChange(saved.url)
+      setUrlInput(saved.url)
     } catch (err) {
-      console.error('Image compression failed', err)
-      alert('Failed to process image file. Please try another image.')
+      console.error('Image upload failed', err)
+      alert(err.message || 'Failed to save image to the database. Please try another image.')
     } finally {
       setCompressing(false)
+      setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -117,9 +129,11 @@ export default function ImageUploader({ label = 'Station Image', value = '', onC
             }}
           >
             <span style={{ fontSize: 11, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
-              {value.startsWith('data:')
-                ? `✓ Compressed — ${Math.round(value.length * 0.75 / 1024)} KB`
-                : value}
+              {value.startsWith('/api/images/')
+                ? '✓ Saved in database — visible to all players after Save'
+                : value.startsWith('data:')
+                  ? `Local preview — ${Math.round(value.length * 0.75 / 1024)} KB`
+                  : value}
             </span>
 
             <div style={{ display: 'flex', gap: 6 }}>
@@ -128,9 +142,9 @@ export default function ImageUploader({ label = 'Station Image', value = '', onC
                 className="adm-btn adm-btn--secondary adm-btn--sm"
                 style={{ fontSize: 12, padding: '4px 10px' }}
                 onClick={() => fileInputRef.current?.click()}
-                disabled={compressing}
+                disabled={busy}
               >
-                {compressing ? 'Optimizing...' : 'Replace'}
+                {busy ? (uploading ? 'Saving...' : 'Optimizing...') : 'Replace'}
               </button>
               <button
                 type="button"
@@ -146,13 +160,13 @@ export default function ImageUploader({ label = 'Station Image', value = '', onC
       ) : mode === 'upload' ? (
         /* Dropzone / Upload Box */
         <div
-          onClick={() => !compressing && fileInputRef.current?.click()}
+          onClick={() => !busy && fileInputRef.current?.click()}
           style={{
             border: '2px dashed #cbd5e1',
             borderRadius: 8,
             padding: '24px 16px',
             textAlign: 'center',
-            cursor: compressing ? 'wait' : 'pointer',
+            cursor: busy ? 'wait' : 'pointer',
             background: '#f8fafc',
             transition: 'all 0.2s ease',
             display: 'flex',
@@ -180,7 +194,7 @@ export default function ImageUploader({ label = 'Station Image', value = '', onC
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>
-              {compressing ? 'Optimizing Image...' : 'Click to Upload Photo or Take Picture'}
+              {uploading ? 'Saving image to database...' : compressing ? 'Optimizing Image...' : 'Click to Upload Photo or Take Picture'}
             </div>
             <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
               Supports JPG, PNG, WebP (auto-optimized for mobile)

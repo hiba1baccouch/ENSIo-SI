@@ -70,6 +70,20 @@ export default function GamePage() {
     initGame()
   }, [stationId, teamId])
 
+  useEffect(() => {
+    if (!stationId) return
+    const refreshStation = async () => {
+      try {
+        const stData = await api.getStation(stationId)
+        setStation((prev) => (prev ? { ...prev, ...stData } : stData))
+      } catch {
+        // keep last known station if a refresh fails
+      }
+    }
+    const interval = setInterval(refreshStation, 8000)
+    return () => clearInterval(interval)
+  }, [stationId])
+
   // Handle Validation callback for all games
   const handleValidate = useCallback(async (answer) => {
     if (!station || validating) return

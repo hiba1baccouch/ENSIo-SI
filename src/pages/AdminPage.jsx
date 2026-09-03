@@ -20,9 +20,9 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false)
   const [settingsMsg, setSettingsMsg] = useState(null)
 
-  const loadAdminData = async () => {
+  const loadAdminData = async (silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
       const [teamsData, stationsData, eventsData, settingsData] = await Promise.all([
         api.adminGetTeams(),
         api.adminGetStations(),
@@ -41,11 +41,16 @@ export default function AdminPage() {
         setIsAuthenticated(false)
       }
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
-  useEffect(() => { if (isAuthenticated) loadAdminData() }, [isAuthenticated])
+  useEffect(() => {
+    if (!isAuthenticated) return
+    loadAdminData()
+    const interval = setInterval(() => loadAdminData(true), 10000)
+    return () => clearInterval(interval)
+  }, [isAuthenticated])
 
   const handleLogout = () => {
     sessionStorage.removeItem('admin_key')

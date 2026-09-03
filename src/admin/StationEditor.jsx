@@ -486,6 +486,7 @@ export default function StationEditor({ stations, onRefresh }) {
   const [message, setMessage] = useState(null)
   const [rawMode, setRawMode] = useState(false)
   const [showQRModal, setShowQRModal] = useState(false)
+  const [qrStation, setQrStation] = useState(null)
   const [modalError, setModalError] = useState(null)
 
   const showMsg = (type, text) => {
@@ -511,16 +512,47 @@ export default function StationEditor({ stations, onRefresh }) {
     })
   }
 
+  const persistStation = async (payload, { close = false } = {}) => {
+    if (!editing) return
+    const saved = await api.adminUpdateStation(editing.id, payload)
+    if (saved?.station?.config) {
+      setForm((prev) => ({ ...prev, ...payload, config: saved.station.config }))
+    }
+    if (onRefresh) await onRefresh()
+    if (close) {
+      setEditing(null)
+      showMsg('success', `Station ${editing.id} saved successfully!`)
+    }
+  }
+
+  const handleConfigChange = async (cfg) => {
+    const next = { ...form, config: cfg }
+    setForm(next)
+
+    const imageKeys = ['image', 'image_original', 'image_modified', 'map_image']
+    const prev = form.config || {}
+    const imageChanged = imageKeys.some(
+      (k) => prev[k] !== cfg[k] && (String(cfg[k] || '').startsWith('/api/images/') || cfg[k] === '')
+    )
+    if (!imageChanged) return
+
+    try {
+      setModalError(null)
+      await persistStation(next)
+      showMsg('success', 'Image saved — all players will see this photo.')
+    } catch (err) {
+      console.error('Image publish failed:', err)
+      setModalError(err.message || 'Image uploaded but failed to publish to players')
+    }
+  }
+
   const handleSave = async (e) => {
     e.preventDefault()
     if (!editing || loading) return
     try {
       setLoading(true)
       setModalError(null)
-      await api.adminUpdateStation(editing.id, { ...form })
-      setEditing(null)
-      showMsg('success', `Station ${editing.id} saved successfully!`)
-      if (onRefresh) await onRefresh()
+      await persistStation(form, { close: true })
     } catch (err) {
       console.error('Save failed:', err)
       setModalError(err.message || 'Failed to save station')
@@ -688,7 +720,7 @@ export default function StationEditor({ stations, onRefresh }) {
                 <hr className="adm-divider" />
 
                 {/* Per-game form with ImageUploader */}
-                {renderGameForm(editing.game_type, form.config, (cfg) => setForm({ ...form, config: cfg }))}
+                {renderGameForm(editing.game_type, form.config, handleConfigChange)}
 
                 {modalError && (
                   <div style={{ marginTop: 16, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626', fontSize: 13 }}>

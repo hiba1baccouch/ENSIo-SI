@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { randomUUID } from 'crypto'
 import { db, initializeDatabase } from './db.js'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -39,9 +40,85 @@ function adminAuth(req, res, next) {
   next()
 }
 
+function storeImageFromPayload(data, mime_type) {
+  if (!data) throw new Error('No image data provided')
+
+  let base64 = data
+  let mimeType = mime_type || 'image/jpeg'
+  const dataUrlMatch = String(data).match(/^data:([^;]+);base64,(.+)$/)
+  if (dataUrlMatch) {
+    mimeType = dataUrlMatch[1]
+    base64 = dataUrlMatch[2]
+  }
+
+  const buffer = Buffer.from(base64, 'base64')
+  if (!buffer.length) throw new Error('Invalid image data')
+  if (buffer.length > 3 * 1024 * 1024) {
+    const err = new Error('Image too large (max 3 MB after compression)')
+    err.status = 413
+    throw err
+  }
+
+  const id = randomUUID()
+  db.prepare('INSERT INTO images (id, mime_type, data) VALUES (?, ?, ?)').run(id, mimeType, buffer)
+  return { id, url: `/api/images/${id}` }
+}
+
+function persistConfigImages(config) {
+  if (!config || typeof config !== 'object') return config
+  const keys = ['image', 'image_original', 'image_modified', 'map_image']
+  const next = { ...config }
+  for (const key of keys) {
+    const val = next[key]
+    if (typeof val === 'string' && val.startsWith('data:')) {
+      next[key] = storeImageFromPayload(val).url
+    }
+  }
+  return next
+}
+
+function blobToBuffer(data) {
+  if (!data) return null
+  if (Buffer.isBuffer(data)) return data
+  if (data instanceof Uint8Array) return Buffer.from(data)
+  return Buffer.from(data)
+}
+
+// ─── IMAGE UPLOAD & SERVE ─────────────────────────────────
+// POST /api/images  — Upload a base64 image, store blob, return URL
+app.post('/api/images', adminAuth, (req, res) => {
+  try {
+    const { data, mime_type } = req.body || {}
+    const saved = storeImageFromPayload(data, mime_type)
+    res.json(saved)
+  } catch (err) {
+    console.error('Image upload error:', err)
+    res.status(err.status || 500).json({ error: err.message })
+  }
+})
+
+// GET /api/images/:id — Serve stored image
+app.get('/api/images/:id', (req, res) => {
+  try {
+    const row = db.prepare('SELECT data, mime_type FROM images WHERE id = ?').get(req.params.id)
+    if (!row) return res.status(404).json({ error: 'Image not found' })
+
+    const buffer = blobToBuffer(row.data)
+    res.setHeader('Content-Type', row.mime_type || 'image/jpeg')
+    res.setHeader('Cache-Control', 'public, max-age=86400')
+    res.setHeader('Content-Length', buffer.length)
+    res.end(buffer)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+
+
 // ─── TEAM ROUTES ──────────────────────────────────────────
 // Get public leaderboard standings
 app.get('/api/leaderboard', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
   const teams = db.prepare('SELECT id, name, color, avatar, score, current_station, updated_at FROM teams WHERE is_active = 1 ORDER BY score DESC, current_station DESC').all()
   res.json(teams)
 })
@@ -94,6 +171,7 @@ app.get('/api/teams/:teamId', (req, res) => {
 // ─── STATION ROUTES (QR ONLY ACCESS) ──────────────────────
 // Get station info (public, but sanitized & strictly protected)
 app.get('/api/stations/:stationId', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
   const station = db.prepare('SELECT * FROM stations WHERE id = ?').get(parseInt(req.params.stationId))
   if (!station) return res.status(404).json({ error: 'Station beacon not recognized' })
 
@@ -336,10 +414,11 @@ app.put('/api/admin/stations/:stationId', adminAuth, (req, res) => {
     }
 
     if (config) {
+      const persistedConfig = persistConfigImages(config)
       db.prepare(
         `INSERT INTO game_configs (station_id, config_json, updated_at) VALUES (?, ?, datetime('now'))
          ON CONFLICT(station_id) DO UPDATE SET config_json = excluded.config_json, updated_at = datetime('now')`
-      ).run(stationId, JSON.stringify(config))
+      ).run(stationId, JSON.stringify(persistedConfig))
     }
 
     // Fetch updated station to return immediately

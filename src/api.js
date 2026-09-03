@@ -59,4 +59,7 @@ export const api = {
     request('/admin/settings', { method: 'PUT', body: { key, value }, headers: adminHeaders() }),
   adminArrivalBonus: (stationId, arrivals) =>
     request('/admin/arrival-bonus', { method: 'POST', body: { stationId, arrivals }, headers: adminHeaders() }),
+  // Image upload — stores blob in DB, returns { id, url }
+  uploadImage: (dataUrl) =>
+    request('/images', { method: 'POST', body: { data: dataUrl }, headers: adminHeaders() }),
 }

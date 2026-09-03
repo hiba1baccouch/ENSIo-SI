@@ -21,9 +21,9 @@ export default function HomePage() {
   const [showScanner, setShowScanner] = useState(false)
 
   // Load teams and private stats
-  const refreshStats = async (teamId) => {
+  const refreshStats = async (teamId, silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) setLoading(true)
       const [allTeams, privateData] = await Promise.all([
         api.getTeams().catch(() => []),
         teamId ? api.getPrivateStats(teamId).catch(() => null) : null
@@ -38,12 +38,14 @@ export default function HomePage() {
     } catch (err) {
       console.error('Failed to load mission data', err)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
   useEffect(() => {
     refreshStats(lockedTeamId)
+    const interval = setInterval(() => refreshStats(lockedTeamId, true), 10000)
+    return () => clearInterval(interval)
   }, [lockedTeamId])
 
   const handleSquadLocked = (team) => {

@@ -84,6 +84,13 @@ export function initializeDatabase() {
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS images (
+      id TEXT PRIMARY KEY,
+      mime_type TEXT NOT NULL DEFAULT 'image/jpeg',
+      data BLOB NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `)
 
   // Check if we need to seed or update teams to 10 and stations to 7 (or update French defaults to English)
