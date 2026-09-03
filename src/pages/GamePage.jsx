@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { writeTeamBackup } from '../teamBackup'
+import { quizStations } from '../../content/quizStations.js'
 
 // Components
 import GameHeader from '../components/GameHeader'
@@ -18,6 +19,94 @@ import MapLyingGame from '../games/MapLyingGame'
 import HiddenMessageGame from '../games/HiddenMessageGame'
 import EmojiCodeGame from '../games/EmojiCodeGame'
 
+// Local validation engine in case of server failure or offline mode
+function performLocalValidation(gameType, config, answer, newAttempts) {
+  const localStation = quizStations.find(s => s.game_type === gameType) || {}
+  const fullConfig = { ...localStation.config, ...config }
+
+  switch (gameType) {
+    case 'zoom': {
+      const correctOpt = fullConfig.options?.find(o => o.correct)
+      const isCorrect = answer === correctOpt?.id || answer === correctOpt?.text
+      return {
+        correct: isCorrect,
+        message: isCorrect ? 'Spot Verified! Location confirmed.' : `Incorrect location.`,
+        attempts_used: newAttempts,
+        hint: localStation.hint_text
+      }
+    }
+    case 'memory_glitch': {
+      let count = 0
+      for (const q of fullConfig.questions || []) {
+        if (answer?.answers?.[q.id] === q.correct) count++
+      }
+      const isCorrect = count >= (fullConfig.required_correct || 4)
+      return {
+        correct: isCorrect,
+        message: isCorrect ? `Recall Confirmed! Scored ${count}.` : `Only ${count} correct.`,
+        attempts_used: newAttempts,
+        hint: localStation.hint_text
+      }
+    }
+    case 'find_difference': {
+      const guess = parseInt(answer?.guess_count ?? answer)
+      const target = fullConfig.answer_count || 4
+      const isCorrect = guess === target
+      return {
+        correct: isCorrect,
+        message: isCorrect ? `Correct! There are ${target} differences.` : `Incorrect count.`,
+        attempts_used: newAttempts,
+        hint: localStation.hint_text
+      }
+    }
+    case 'digital_escape': {
+      const puzzle = fullConfig.puzzles?.find(p => p.id === answer?.puzzle_id) || fullConfig.puzzles?.[0]
+      const isCorrect = puzzle && String(answer?.answer || answer).toLowerCase().trim() === String(puzzle.answer).toLowerCase().trim()
+      return {
+        correct: isCorrect,
+        message: isCorrect ? 'Cipher Sequence Verified!' : 'Cipher sequence invalid.',
+        attempts_used: newAttempts,
+        hint: localStation.hint_text
+      }
+    }
+    case 'map_lying': {
+      const x = answer?.x ?? 0
+      const y = answer?.y ?? 0
+      const dist = Math.sqrt(Math.pow(x - 55, 2) + Math.pow(y - 40, 2))
+      const isCorrect = dist <= 14
+      return {
+        correct: isCorrect,
+        message: isCorrect ? 'Cartographic Phantom Detected!' : 'Sector verified normal.',
+        attempts_used: newAttempts,
+        hint: localStation.hint_text
+      }
+    }
+    case 'hidden_message': {
+      const word = String(answer?.word || answer).toUpperCase().trim()
+      const target = String(fullConfig.final_word || 'Samsung').toUpperCase().trim()
+      const isCorrect = word === target
+      return {
+        correct: isCorrect,
+        message: isCorrect ? 'Hidden Codeword Verified!' : 'Incorrect codeword. Try again!',
+        attempts_used: newAttempts,
+        hint: localStation.hint_text
+      }
+    }
+    case 'emoji_code': {
+      const round = fullConfig.rounds?.find(r => r.id === answer?.round_id) || fullConfig.rounds?.[0]
+      const isCorrect = round && String(answer?.answer || answer).toLowerCase().trim() === String(round.answer).toLowerCase().trim()
+      return {
+        correct: isCorrect,
+        message: isCorrect ? 'Emoji Cipher Solved!' : 'Incorrect interpretation.',
+        attempts_used: newAttempts,
+        hint: localStation.hint_text
+      }
+    }
+    default:
+      return { correct: false, message: 'Unknown game protocol' }
+  }
+}
+
 export default function GamePage() {
   const { stationId, teamId } = useParams()
   const navigate = useNavigate()
@@ -26,7 +115,6 @@ export default function GamePage() {
   const [team, setTeam] = useState(null)
   const [loading, setLoading] = useState(true)
   const [validating, setValidating] = useState(false)
-  const [error, setError] = useState(null)
 
   // Game session states
   const [attemptsUsed, setAttemptsUsed] = useState(0)
@@ -34,27 +122,28 @@ export default function GamePage() {
   const [pointsEarned, setPointsEarned] = useState(0)
   const [isGameOver, setIsGameOver] = useState(false)
   const [gameOverMsg, setGameOverMsg] = useState('')
-  const [lastResult, setLastResult] = useState(null) // { correct: bool, answer: any }
+  const [lastResult, setLastResult] = useState(null)
 
-  // Initialize Game Session
+  // Initialize Game Session with automatic local fallback
   useEffect(() => {
     async function initGame() {
       try {
         setLoading(true)
+
+        // Try API first
         const [stData, tmData] = await Promise.all([
-          api.getStation(stationId),
+          api.getStation(stationId).catch(() => null),
           api.getTeam(teamId).catch(() => null)
         ])
 
-        if (!stData) {
-          setError('Station not found')
-          return
-        }
-        setStation(stData)
+        // 100% Guaranteed station data fallback
+        const localCodeStation = quizStations.find(s => s.id === parseInt(stationId)) || quizStations[0]
+        const finalStation = stData || localCodeStation
+        setStation(finalStation)
 
-        // Fallback team from localStorage if DB was reset
+        // 100% Guaranteed team data fallback
         const fallbackTeam = tmData || {
-          id: teamId,
+          id: teamId || 'team-1',
           name: localStorage.getItem('eniso_locked_team_name') || 'Squad',
           color: localStorage.getItem('eniso_locked_team_color') || '#4f46e5',
           avatar: localStorage.getItem('eniso_locked_team_avatar') || '⚡',
@@ -70,19 +159,23 @@ export default function GamePage() {
         if (progress) {
           setAttemptsUsed(progress.attempts_used || 0)
           if (progress.status === 'completed' && progress.hint_unlocked) {
-            // Already solved! Fetch hint
-            const hintRes = await api.getHint(stationId, teamId).catch(() => null)
-            if (hintRes) {
-              setUnlockedHint(hintRes.hint)
-              setPointsEarned(progress.score_earned || stData.points_reward)
-            }
+            setUnlockedHint(finalStation.hint_text)
+            setPointsEarned(progress.score_earned || finalStation.points_reward || 100)
           }
         }
 
-        // Inform backend game has started (best-effort)
+        // Best effort backend notification
         await api.startGame(teamId, stationId).catch(() => null)
       } catch (err) {
-        setError(err.message || 'Failed to start game session')
+        console.error('Init game error, using local fallback:', err)
+        const localStation = quizStations.find(s => s.id === parseInt(stationId)) || quizStations[0]
+        setStation(localStation)
+        setTeam({
+          id: teamId || 'team-1',
+          name: localStorage.getItem('eniso_locked_team_name') || 'Squad',
+          color: '#4f46e5',
+          score: 0
+        })
       } finally {
         setLoading(false)
       }
@@ -90,38 +183,29 @@ export default function GamePage() {
     initGame()
   }, [stationId, teamId])
 
-  useEffect(() => {
-    if (!stationId) return
-    const refreshStation = async () => {
-      try {
-        const stData = await api.getStation(stationId)
-        setStation((prev) => (prev ? { ...prev, ...stData } : stData))
-      } catch {
-        // keep last known station if a refresh fails
-      }
-    }
-    const interval = setInterval(refreshStation, 8000)
-    return () => clearInterval(interval)
-  }, [stationId])
-
-  // Handle Validation callback for all games
+  // Handle Validation callback for all games with local fallback
   const handleValidate = useCallback(async (answer) => {
     if (!station || validating) return
     try {
       setValidating(true)
-      const res = await api.validateAnswer(teamId, stationId, station.game_type, answer)
 
-      if (res.attempts_used !== undefined) {
-        setAttemptsUsed(res.attempts_used)
+      // Try server validation first
+      let res = await api.validateAnswer(teamId, stationId, station.game_type, answer).catch(() => null)
+
+      // Fallback local validation if server is unreachable
+      if (!res) {
+        res = performLocalValidation(station.game_type, station.config || {}, answer, attemptsUsed + 1)
       }
 
-      // Track last answer result for visual feedback in game components
+      const nextAttempts = res.attempts_used ?? (attemptsUsed + 1)
+      setAttemptsUsed(nextAttempts)
       setLastResult({ correct: res.correct, answer })
 
       if (res.correct) {
         setLastResult(null) // clear on success (hint card takes over)
-        setUnlockedHint(res.hint)
-        setPointsEarned(res.points_earned || station.points_reward)
+        setUnlockedHint(res.hint || station.hint_text)
+        setPointsEarned(res.points_earned || (nextAttempts === 1 ? 100 : nextAttempts === 2 ? 75 : nextAttempts === 3 ? 50 : 0))
+
         const fresh = await api.getTeam(teamId).catch(() => null)
         if (fresh) {
           setTeam(fresh)
@@ -135,47 +219,33 @@ export default function GamePage() {
       return res
     } catch (err) {
       console.error('Validation error', err)
-      return { correct: false, message: err.message || 'Server validation failed' }
+      return { correct: false, message: err.message || 'Validation failed' }
     } finally {
       setValidating(false)
     }
-  }, [station, teamId, stationId, validating])
+  }, [station, teamId, stationId, validating, attemptsUsed])
 
   const handleRetryGameOver = () => {
     setIsGameOver(false)
     setAttemptsUsed(0)
-    // Reload page
     window.location.reload()
   }
 
-  if (loading) return <LoadingSpinner text="Booting Neural Game Simulator..." />
+  if (loading) return <LoadingSpinner text="Opening Quiz Station..." />
 
-  if (error || !station) {
-    return (
-      <div className="page justify-center items-center">
-        <div className="card card--error text-center" style={{ padding: 'var(--sp-6)' }}>
-          <h2 className="heading-3">Initialization Error</h2>
-          <p className="text-secondary text-sm" style={{ margin: 'var(--sp-3) 0' }}>
-            {error || 'Unable to start this station.'}
-          </p>
-          <button className="btn btn--primary" onClick={() => navigate('/')}>
-            Return to Mission Hub
-          </button>
-        </div>
-      </div>
-    )
-  }
+  const currentStation = station || quizStations[0]
+  const currentTeam = team || { name: 'Squad', color: '#4f46e5', score: 0 }
 
   const renderGameEngine = () => {
     const props = {
-      config: station.config || {},
+      config: currentStation.config || {},
       onValidate: handleValidate,
       attemptsUsed,
       loading: validating,
       lastResult
     }
 
-    switch (station.game_type) {
+    switch (currentStation.game_type) {
       case 'zoom':
         return <ZoomGame {...props} />
       case 'memory_glitch':
@@ -193,25 +263,23 @@ export default function GamePage() {
       default:
         return (
           <div className="card text-center" style={{ padding: 'var(--sp-6)' }}>
-            <p>Unsupported game protocol: {station.game_type}</p>
+            <p>Unsupported game protocol: {currentStation.game_type}</p>
           </div>
         )
     }
   }
 
-  const nextStationId = parseInt(stationId) < 7 ? parseInt(stationId) + 1 : null
-
   return (
     <div className="page" style={{ gap: 'var(--sp-4)', paddingBottom: 'var(--sp-12)' }}>
       {/* Header Bar */}
       <GameHeader
-        stationName={`Station ${station.id}: ${station.name}`}
-        teamName={team.name}
-        teamColor={team.color}
-        teamScore={team.score || 0}
+        stationName={`Station ${currentStation.id}: ${currentStation.name}`}
+        teamName={currentTeam.name || 'Squad'}
+        teamColor={currentTeam.color || '#4f46e5'}
+        teamScore={currentTeam.score || 0}
         attemptsUsed={attemptsUsed}
-        maxAttempts={station.config?.max_attempts || 0}
-        progress={((parseInt(stationId) - 1) / 7) * 100}
+        maxAttempts={currentStation.config?.max_attempts || 0}
+        progress={((parseInt(stationId || '1') - 1) / 7) * 100}
       />
 
       {/* Main Game Interface */}
@@ -222,7 +290,7 @@ export default function GamePage() {
         <HintCard
           hint={unlockedHint}
           pointsEarned={pointsEarned}
-          nextStationId={nextStationId}
+          stationNumber={currentStation.id}
         />
       )}
 
