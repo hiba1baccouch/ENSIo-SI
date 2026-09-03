@@ -3,7 +3,7 @@ import cors from 'cors'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { randomUUID } from 'crypto'
-import { db, initializeDatabase } from './db.js'
+import { db, initializeDatabase, unlockAllStations } from './db.js'
 import {
   snapshotTeam,
   snapshotAllTeams,
@@ -487,12 +487,7 @@ app.put('/api/admin/teams/:teamId', adminAuth, (req, res) => {
 // Reset a team's progress (Admin)
 app.post('/api/admin/teams/:teamId/reset', adminAuth, (req, res) => {
   const teamId = req.params.teamId
-  db.prepare("UPDATE team_progress SET status = 'locked', attempts_used = 0, score_earned = 0, started_at = NULL, completed_at = NULL, hint_unlocked = 0 WHERE team_id = ?").run(teamId)
-  // Unlock station 1
-  const firstStation = db.prepare('SELECT id FROM stations ORDER BY order_index LIMIT 1').get()
-  if (firstStation) {
-    db.prepare("UPDATE team_progress SET status = 'available' WHERE team_id = ? AND station_id = ?").run(teamId, firstStation.id)
-  }
+  db.prepare("UPDATE team_progress SET status = 'available', attempts_used = 0, score_earned = 0, started_at = NULL, completed_at = NULL, hint_unlocked = 0 WHERE team_id = ?").run(teamId)
   db.prepare("UPDATE teams SET score = 0, current_station = 1, updated_at = datetime('now') WHERE id = ?").run(teamId)
   clearTeamSnapshot(teamId)
   res.json({ success: true })
@@ -500,11 +495,7 @@ app.post('/api/admin/teams/:teamId/reset', adminAuth, (req, res) => {
 
 // Reset all teams (Admin)
 app.post('/api/admin/reset-all', adminAuth, (req, res) => {
-  db.prepare("UPDATE team_progress SET status = 'locked', attempts_used = 0, score_earned = 0, started_at = NULL, completed_at = NULL, hint_unlocked = 0").run()
-  const firstStation = db.prepare('SELECT id FROM stations ORDER BY order_index LIMIT 1').get()
-  if (firstStation) {
-    db.prepare("UPDATE team_progress SET status = 'available' WHERE station_id = ?").run(firstStation.id)
-  }
+  db.prepare("UPDATE team_progress SET status = 'available', attempts_used = 0, score_earned = 0, started_at = NULL, completed_at = NULL, hint_unlocked = 0").run()
   db.prepare("UPDATE teams SET score = 0, current_station = 1, updated_at = datetime('now')").run()
   clearAllSnapshots()
   res.json({ success: true })

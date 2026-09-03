@@ -140,7 +140,18 @@ export function initializeDatabase() {
   }
 
   applyQuizContentFromCode()
+  // Force free-roam mode: unlock all stations and disable sequential mode
+  db.prepare("INSERT OR REPLACE INTO admin_settings (key, value) VALUES ('sequential_mode', 'false')").run()
+  unlockAllStations()
   restoreTeamStore(db)
+}
+
+// Unlock every locked station so all teams can play in any order
+export function unlockAllStations() {
+  db.prepare(`
+    UPDATE team_progress SET status = 'available'
+    WHERE status = 'locked'
+  `).run()
 }
 
 export function seedDefaultData() {
@@ -205,14 +216,14 @@ export function seedDefaultData() {
   )
   for (const team of teams) {
     for (const station of stations) {
-      const status = station.order_index === 1 ? 'available' : 'locked'
-      insertProgress.run(team.id, station.id, status)
+      // All stations available — free-roam mode
+      insertProgress.run(team.id, station.id, 'available')
     }
   }
 
   // Admin settings
   const insertSetting = db.prepare('INSERT OR REPLACE INTO admin_settings (key, value) VALUES (?, ?)')
   insertSetting.run('admin_password', 'eniso2026')
-  insertSetting.run('sequential_mode', 'true')
+  insertSetting.run('sequential_mode', 'false')
   insertSetting.run('game_active', 'true')
 }
