@@ -604,19 +604,20 @@ function validateZoom(config, answer, progress) {
 
 function validateMemoryGlitch(config, answer, progress) {
   if (!answer || !answer.answers) return { correct: false, message: 'No answers provided' }
+  const questions = config.questions || []
   let correctCount = 0
-  for (const q of config.questions) {
+  for (const q of questions) {
     if (answer.answers[q.id] === q.correct) correctCount++
   }
   const required = config.required_correct || 4
   if (correctCount >= required) {
-    return { correct: true, message: `Recall Confirmed! You scored ${correctCount}/${config.questions.length}.` }
+    return { correct: true, message: `Recall Confirmed! You scored ${correctCount}/${questions.length}.` }
   }
   const retriesLeft = (config.max_retries || 2) - progress.attempts_used
   if (retriesLeft <= 0) {
-    return { correct: false, message: `Only ${correctCount}/${config.questions.length} correct. Retries exhausted.`, game_over: true, score: correctCount }
+    return { correct: false, message: `Only ${correctCount}/${questions.length} correct. No more retries.`, game_over: true }
   }
-  return { correct: false, message: `${correctCount}/${config.questions.length} correct. Need ${required}. ${retriesLeft} retry remaining.`, score: correctCount }
+  return { correct: false, message: `${correctCount}/${questions.length} correct — need ${required}. ${retriesLeft} retry left.` }
 }
 
 function validateFindDifference(config, answer, progress) {

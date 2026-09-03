@@ -107,7 +107,7 @@ export const quizStations = [
     points_reward: 100,
     config: {
       map_image: '/stations/5-map.png',
-      question: 'How many fake / non-existent structures are shown on this campus map?',
+      question: 'How many wrong structures are shown on this campus map?',
       answer_count: 1,
       max_attempts: 5,
     },
