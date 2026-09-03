@@ -36,14 +36,16 @@ function performLocalValidation(gameType, config, answer, newAttempts) {
       }
     }
     case 'memory_glitch': {
+      // Use local quizStations for correct answers (server strips them from sanitized config)
+      const localConfig = localStation.config || {}
       let count = 0
-      for (const q of fullConfig.questions || []) {
+      for (const q of localConfig.questions || []) {
         if (answer?.answers?.[q.id] === q.correct) count++
       }
-      const isCorrect = count >= (fullConfig.required_correct || 4)
+      const isCorrect = count >= (localConfig.required_correct || 4)
       return {
         correct: isCorrect,
-        message: isCorrect ? `Recall Confirmed! Scored ${count}.` : `Only ${count} correct.`,
+        message: isCorrect ? `Recall Confirmed! Scored ${count}/${localConfig.questions?.length || 5}.` : `Only ${count} correct — need ${localConfig.required_correct || 4}. Try again.`,
         attempts_used: newAttempts,
         hint: localStation.hint_text
       }

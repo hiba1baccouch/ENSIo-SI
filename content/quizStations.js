@@ -39,7 +39,7 @@ export const quizStations = [
       image: '/stations/2-memory.jpg',
       display_time: 12,
       questions: [
-        { id: 'q1', text: 'What color was the door in the photo?', options: ['Red', 'Blue', 'Green', 'Yellow'], correct: 0 },
+        { id: 'q1', text: 'What color was the wall in the photo?', options: ['Red', 'Blue', 'Green', 'Yellow'], correct: 0 },
         { id: 'q2', text: 'How many windows were visible?', options: ['2', '0', '4', '5'], correct: 2 },
         { id: 'q3', text: 'What was written on the sign?', options: ['ENISo', 'Exit', 'Welcome', 'Library'], correct: 0 },
         { id: 'q4', text: 'How many chairs were visible?', options: ['4', '5', '2', '1'], correct: 3 },
