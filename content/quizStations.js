@@ -121,7 +121,7 @@ export const quizStations = [
     config: {
       image: '/stations/6-hidden.jpg',
       question: 'Enter the hidden secret codeword found at this campus station:',
-      final_word: 'Samsung',
+      final_word: 'Engineering',
       max_attempts: 3,
     },
   },
