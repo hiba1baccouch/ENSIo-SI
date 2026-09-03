@@ -56,7 +56,7 @@ export const quizStations = [
     hint_text: 'Head to where the ground meets the open sky and students gather between classes.',
     points_reward: 100,
     config: {
-      image_original: '/stations/3-original.jpg',
+      image_original: '/stations/3-original.png',
       image_modified: '/stations/3-modified.png',
       // Number of actual differences between the two images
       answer_count: 4,
