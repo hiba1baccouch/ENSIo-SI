@@ -106,9 +106,9 @@ export const quizStations = [
     hint_text: 'The map showed you what was false. Now, go discover what is true, it could be near you.',
     points_reward: 100,
     config: {
-      map_image: '/stations/5-map.jpg',
-      anomaly: { x: 55, y: 40, radius: 8 },
-      click_tolerance: 12,
+      map_image: '/stations/5-map.png',
+      question: 'How many fake / non-existent structures are shown on this campus map?',
+      answer_count: 1,
       max_attempts: 5,
     },
   },

@@ -72,13 +72,13 @@ function performLocalValidation(gameType, config, answer, newAttempts) {
       }
     }
     case 'map_lying': {
-      const x = answer?.x ?? 0
-      const y = answer?.y ?? 0
-      const dist = Math.sqrt(Math.pow(x - 55, 2) + Math.pow(y - 40, 2))
-      const isCorrect = dist <= 14
+      const localConfig = localStation.config || {}
+      const guess = parseInt(answer?.guess_count ?? 0)
+      const target = localConfig.answer_count ?? 1
+      const isCorrect = guess === target
       return {
         correct: isCorrect,
-        message: isCorrect ? 'Cartographic Phantom Detected!' : 'Sector verified normal.',
+        message: isCorrect ? 'Cartographic Phantom Detected! Anomaly confirmed.' : `Incorrect count. Try again!`,
         attempts_used: newAttempts,
         hint: localStation.hint_text
       }

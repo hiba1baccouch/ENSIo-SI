@@ -656,17 +656,21 @@ function validateDigitalEscape(config, answer, progress) {
 }
 
 function validateMapLying(config, answer, progress) {
-  if (!answer || answer.x === undefined || answer.y === undefined) return { correct: false, message: 'No coordinates selected' }
-  const dist = Math.sqrt(Math.pow(answer.x - config.anomaly.x, 2) + Math.pow(answer.y - config.anomaly.y, 2))
-  const tolerance = config.click_tolerance || 12
-  if (dist <= tolerance) {
-    return { correct: true, message: 'Cartographic Phantom Detected!' }
+  if (!answer) return { correct: false, message: 'No answer provided' }
+
+  const guess = parseInt(answer.guess_count ?? answer.x)
+  const correctCount = config.answer_count ?? 1
+
+  if (!isNaN(guess) && guess === correctCount) {
+    return { correct: true, message: 'Cartographic Phantom Detected! Anomaly confirmed.' }
   }
+
   const remaining = (config.max_attempts || 5) - progress.attempts_used
   if (remaining <= 0) {
-    return { correct: false, message: 'Max attempts reached.', game_over: true }
+    return { correct: false, message: `The correct answer was ${correctCount}. All attempts used.`, game_over: true }
   }
-  return { correct: false, message: `Sector verified normal. ${remaining} attempt(s) remaining.` }
+  const hint = !isNaN(guess) && guess < correctCount ? 'Too low — look more carefully!' : 'Too high — some may be real.'
+  return { correct: false, message: `${hint} ${remaining} attempt(s) remaining.` }
 }
 
 function validateHiddenMessage(config, answer, progress) {
