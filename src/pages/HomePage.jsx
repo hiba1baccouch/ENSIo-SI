@@ -84,13 +84,30 @@ export default function HomePage() {
     refreshStats(team.id)
   }
 
-  // Only show full-screen spinner if we have neither cached stats nor squad locked
-  if (loading && !lockedTeamId && !myStats) {
+  // Show spinner while loading (regardless of whether squad is locked)
+  if (loading && !myStats) {
     return <LoadingSpinner text="Connecting to ENISo Command Feed..." />
   }
 
   // If no squad locked yet -> Show 1-time selection screen
   if (!lockedTeamId) {
+    // If teams failed to load, show retry
+    if (!teams || teams.length === 0) {
+      return (
+        <div className="app-screen animate-fadeIn" style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <div className="challenge-card" style={{ margin: 20, textAlign: 'center' }}>
+            <div style={{ fontSize: 48, marginBottom: 8 }}>📡</div>
+            <h2 className="challenge-card__title">Connecting to Server...</h2>
+            <p className="challenge-card__prompt" style={{ margin: '8px 0 20px' }}>
+              Unable to load team data. Please check your connection and try again.
+            </p>
+            <button className="btn-primary" onClick={() => refreshStats(null)}>
+              🔄 Retry
+            </button>
+          </div>
+        </div>
+      )
+    }
     return <SquadLock teams={teams} onLockSuccess={handleSquadLocked} />
   }
 
