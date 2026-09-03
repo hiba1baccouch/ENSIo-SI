@@ -6,21 +6,30 @@ export default function QRScannerModal({ onClose }) {
   const navigate = useNavigate()
   const [cameraError, setCameraError] = useState(null)
   const qrRef = useRef(null)
+  const stoppedRef = useRef(false) // guard: only stop once
+
+  const safeStop = async () => {
+    if (stoppedRef.current) return
+    stoppedRef.current = true
+    try {
+      if (qrRef.current) {
+        await qrRef.current.stop()
+        qrRef.current.clear?.()
+      }
+    } catch {
+      // Ignore — scanner may already be stopped/paused
+    }
+  }
 
   useEffect(() => {
-    let html5QrCode = null
-
     async function startScanner() {
       try {
-        html5QrCode = new Html5Qrcode('qr-reader-target')
+        const html5QrCode = new Html5Qrcode('qr-reader-target')
         qrRef.current = html5QrCode
 
         await html5QrCode.start(
           { facingMode: 'environment' },
-          {
-            fps: 10,
-            qrbox: { width: 220, height: 220 },
-          },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
           (decodedText) => {
             handleDecodedPayload(decodedText)
           },
@@ -34,29 +43,24 @@ export default function QRScannerModal({ onClose }) {
 
     startScanner()
 
-    return () => {
-      if (qrRef.current) {
-        qrRef.current.stop().catch(() => {}).then(() => {
-          qrRef.current?.clear?.()
-        })
-      }
-    }
+    // Cleanup on unmount — safeStop guards against double-stop
+    return () => { safeStop() }
   }, [])
 
   const handleDecodedPayload = (text) => {
-    if (qrRef.current) {
-      qrRef.current.stop().catch(() => {})
-    }
-
-    // Support formats: /station/3, http://.../station/3
-    const match = text.match(/station\/([0-9]+)/i)
-    if (match) {
-      const stationId = match[1]
-      navigate(`/station/${stationId}`)
-      onClose?.()
-    } else {
-      alert(`Scanned data unrecognized: "${text}". Expected an ENISo Station QR Code.`)
-    }
+    // Stop scanner first, then navigate
+    safeStop().then(() => {
+      const match = text.match(/station\/([0-9]+)/i)
+      if (match) {
+        const stationId = match[1]
+        navigate(`/station/${stationId}`)
+        onClose?.()
+      } else {
+        // Show inline error instead of alert (alerts block Safari)
+        setCameraError(`Unrecognized QR code. Expected an ENISo Station QR code.`)
+        stoppedRef.current = false // allow retry
+      }
+    })
   }
 
   return (
@@ -64,7 +68,7 @@ export default function QRScannerModal({ onClose }) {
       style={{
         position: 'fixed',
         inset: 0,
-        background: 'rgba(255, 255, 255, 0.92)',
+        background: 'rgba(8, 9, 15, 0.9)',
         backdropFilter: 'blur(12px)',
         display: 'flex',
         alignItems: 'center',
@@ -83,12 +87,12 @@ export default function QRScannerModal({ onClose }) {
           overflowY: 'auto'
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-primary)' }}>
             📷 Scan Campus QR Beacon
           </h3>
           <button
-            onClick={onClose}
+            onClick={() => { safeStop(); onClose?.() }}
             style={{
               background: 'none',
               border: 'none',
@@ -106,7 +110,7 @@ export default function QRScannerModal({ onClose }) {
         <div className="qr-scanner-box">
           <div id="qr-reader-target" style={{ width: '100%' }} />
           {cameraError && (
-            <div style={{ padding: 20, textAlign: 'center', color: '#fca5a5', fontSize: 13 }}>
+            <div style={{ padding: 20, textAlign: 'center', color: '#fca5a5', fontSize: 13, lineHeight: 1.5 }}>
               📷 {cameraError}
             </div>
           )}
