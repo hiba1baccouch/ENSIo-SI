@@ -671,27 +671,19 @@ function validateMapLying(config, answer, progress) {
 
 function validateHiddenMessage(config, answer, progress) {
   if (!answer) return { correct: false, message: 'No answer provided' }
-  
-  if (answer.word) {
-    if (answer.word.toUpperCase().trim() === config.final_word.toUpperCase().trim()) {
-      return { correct: true, message: 'Hidden Message Decrypted!' }
-    }
-    return { correct: false, message: 'Incorrect codeword. Check your glyphs.' }
+  const word = typeof answer === 'string' ? answer : (answer.word || '')
+  const target = config.final_word || 'Samsung'
+
+  if (word.toUpperCase().trim() === target.toUpperCase().trim()) {
+    return { correct: true, message: 'Hidden Codeword Verified!' }
   }
 
-  if (answer.click) {
-    const { x, y } = answer.click
-    const tolerance = config.click_tolerance || 8
-    for (const el of config.elements) {
-      const dist = Math.sqrt(Math.pow(x - el.x, 2) + Math.pow(y - el.y, 2))
-      if (dist <= tolerance) {
-        return { correct: false, element_found: true, element_id: el.id, letter: el.letter, message: `Found Glyph: ${el.letter}` }
-      }
-    }
-    return { correct: false, element_found: false, message: 'Nothing here.' }
+  const maxAttempts = config.max_attempts || 3
+  const remaining = maxAttempts - progress.attempts_used
+  if (remaining <= 0) {
+    return { correct: false, message: 'All attempts used.', game_over: true }
   }
-
-  return { correct: false, message: 'Invalid payload' }
+  return { correct: false, message: `Incorrect codeword. ${remaining} attempt(s) remaining.` }
 }
 
 function validateEmojiCode(config, answer, progress) {

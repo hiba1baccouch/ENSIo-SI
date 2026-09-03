@@ -120,13 +120,9 @@ export const quizStations = [
     points_reward: 100,
     config: {
       image: '/stations/6-hidden.jpg',
-      elements: [
-        { id: 'e1', x: 20, y: 35, radius: 6, letter: 'L' },
-        { id: 'e2', x: 50, y: 65, radius: 6, letter: 'A' },
-        { id: 'e3', x: 80, y: 25, radius: 6, letter: 'B' },
-      ],
-      final_word: 'LAB',
-      click_tolerance: 10,
+      question: 'Enter the hidden secret codeword found at this campus station:',
+      final_word: 'Samsung',
+      max_attempts: 3,
     },
   },
   {

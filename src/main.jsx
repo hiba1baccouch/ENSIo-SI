@@ -18,6 +18,7 @@ class ErrorBoundary extends Component {
   }
   render() {
     if (this.state.hasError) {
+      const msg = this.state.error?.message || (typeof this.state.error === 'string' ? this.state.error : '')
       return (
         <div style={{
           minHeight: '100vh', display: 'flex', flexDirection: 'column',
@@ -26,18 +27,33 @@ class ErrorBoundary extends Component {
         }}>
           <div style={{ fontSize: 48 }}>⚠️</div>
           <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>Something went wrong</h2>
-          <p style={{ color: '#94a3b8', maxWidth: 320, margin: 0 }}>
-            {this.state.error?.message || 'An unexpected error occurred. Please reload the page.'}
+          <p style={{ color: '#94a3b8', maxWidth: 360, margin: 0, fontSize: 13, wordBreak: 'break-word' }}>
+            {msg || 'An unexpected error occurred. Please reload the page.'}
           </p>
-          <button
-            onClick={() => { this.setState({ hasError: false }); window.location.href = '/' }}
-            style={{
-              background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 12,
-              padding: '12px 28px', fontSize: 15, fontWeight: 700, cursor: 'pointer'
-            }}
-          >
-            🔄 Reload App
-          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={() => { this.setState({ hasError: false, error: null }); window.location.href = '/' }}
+              style={{
+                background: '#4f46e5', color: '#fff', border: 'none', borderRadius: 12,
+                padding: '12px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer'
+              }}
+            >
+              🔄 Reload App
+            </button>
+            <button
+              onClick={() => {
+                localStorage.clear()
+                sessionStorage.clear()
+                window.location.href = '/'
+              }}
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.3)', borderRadius: 12,
+                padding: '12px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer'
+              }}
+            >
+              🧹 Clear Cache & Reset
+            </button>
+          </div>
         </div>
       )
     }
