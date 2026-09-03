@@ -1,0 +1,20 @@
+[33m1d07302[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Fix scan navigation hanging, provide instant team/station fallbacks, add 1-tap station shortcuts in scanner
+[33m5730b74[m Ensure station options and questions render immediately without refreshing after scan; persist pending QR scan
+[33m4100b88[m Make all 7 games completely independent; add playable station hub and free roaming in any order
+[33m0742dad[m Ship station photos from code, keep quiz content in one file, and persist each team's score across scans.
+[33mb41d2d9[m Save station photos in SQLite and sync live updates to every player.
+[33m5706f82[m Remove manual PIN from QR scanner; fix image upload size limit for Vercel; compress images more aggressively
+[33mc0e9f45[m Translate all hints and configs to English; fix station editing and hint saving in admin panel
+[33mfa9b667[m Completely remove CAMPUS CHECKPOINT, STATION #1, and game name from QR poster card
+[33mb69bca0[m Restore 7 quiz games, 4 physical games in arrival scorer, wrong answer retry styling, remove rank link, fix refresh persistence, remove print header
+[33m3b3a63c[m Reduce game from 7 stations to 4 stations only
+[33m2ba19bd[m Trigger Vercel deployment
+[33m934685b[m Add Arrival Scorer: admin can award 100/75/50 pts to teams by physical arrival order
+[33m5ebe029[m Add red border + shake animation + error banner on wrong answers in ZoomGame
+[33m0ca1769[m Fix: QR scan now auto-redirects directly to quiz (remove confirmation screen), remove Open Current Station button
+[33md886507[m Add QR Code & Poster Generator to Admin Dashboard with high-res PNG downloads and printable A4 posters for all 7 stations
+[33m43f2001[m Remove Open Current Station Directly button so players must scan physical QR codes
+[33m84236a9[m Update default stations and game configs with exact quiz ideas and French clues
+[33m18bc91a[m Add ImageUploader component to Admin StationEditor with mobile camera upload, client-side optimizer, and live preview
+[33ma88f13d[m Fix white text contrast in SquadLock and unify interface card styles
+[33m32dc870[m Initial commit: ENISo SI Campus Quest app with PWA assets and Vercel configuration

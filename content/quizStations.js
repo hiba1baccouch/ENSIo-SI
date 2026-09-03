@@ -58,16 +58,9 @@ export const quizStations = [
     config: {
       image_original: '/stations/3-original.jpg',
       image_modified: '/stations/3-modified.png',
-      // x / y are percentages (0–100) of the photo. Tap targets for Feed B.
-      differences: [
-        { id: 'd1', x: 15, y: 20, radius: 5, label: 'Missing window' },
-        { id: 'd2', x: 45, y: 35, radius: 5, label: 'Color alteration' },
-        { id: 'd3', x: 70, y: 50, radius: 5, label: 'Extra tree' },
-        { id: 'd4', x: 30, y: 70, radius: 5, label: 'Missing signpost' },
-        { id: 'd5', x: 80, y: 15, radius: 5, label: 'Modified flag' },
-      ],
-      required_found: 5,
-      click_tolerance: 10,
+      // Number of actual differences between the two images
+      answer_count: 4,
+      max_attempts: 3,
     },
   },
   {
@@ -110,11 +103,11 @@ export const quizStations = [
     id: 5,
     name: 'THE MAP IS LYING',
     game_type: 'map_lying',
-    hint_text: 'The map showed you what was false. Now, go discover what is true.',
+    hint_text: 'The map showed you what was false. Now, go discover what is true, it could be near you.',
     points_reward: 100,
     config: {
       map_image: '/stations/5-map.jpg',
-      anomaly: { x: 55, y: 40, radius: 8, description: 'This building does not exist on the real campus.' },
+      anomaly: { x: 55, y: 40, radius: 8 },
       click_tolerance: 12,
       max_attempts: 5,
     },

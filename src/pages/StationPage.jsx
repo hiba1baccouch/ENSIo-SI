@@ -7,9 +7,8 @@ export default function StationPage() {
   const { stationId } = useParams()
   const navigate = useNavigate()
 
-  const [accessInfo, setAccessInfo] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [denied, setDenied] = useState(null) // { reason } only when truly locked
 
   useEffect(() => {
     async function loadAndRedirect() {
@@ -21,18 +20,37 @@ export default function StationPage() {
           return
         }
 
-        const accessData = await api.getStationAccess(stationId, lockedTeamId)
-        setAccessInfo(accessData)
+        let shouldGrant = true
+        let denialReason = null
 
-        // ─── AUTO-REDIRECT: access granted → go straight to the quiz ───
-        if (accessData?.access) {
+        try {
+          const accessData = await api.getStationAccess(stationId, lockedTeamId)
+          if (accessData?.access === false) {
+            // Only block if server explicitly says false (sequential mode locked)
+            shouldGrant = false
+            denialReason = accessData.reason
+          }
+        } catch {
+          // If access check fails (e.g. no progress record on cold-start DB),
+          // default to granting access — free-roam mode
+          shouldGrant = true
+        }
+
+        if (shouldGrant) {
           navigate(`/game/${stationId}/${lockedTeamId}`, { replace: true })
-          return
+        } else {
+          setDenied({ reason: denialReason })
+          setLoading(false)
         }
       } catch (err) {
-        setError(err.message || 'Failed to verify station access')
-      } finally {
-        setLoading(false)
+        console.error('Station access error:', err)
+        // On any error, still try to load the game
+        const lockedTeamId = localStorage.getItem('eniso_locked_team_id')
+        if (lockedTeamId) {
+          navigate(`/game/${stationId}/${lockedTeamId}`, { replace: true })
+        } else {
+          navigate('/')
+        }
       }
     }
 
@@ -41,7 +59,7 @@ export default function StationPage() {
 
   if (loading) return <LoadingSpinner text="Scanning beacon, verifying access..." />
 
-  // Only reached when access is DENIED
+  // Only reached when access is explicitly DENIED (sequential mode)
   return (
     <div className="app-screen animate-fadeIn" style={{ justifyContent: 'center', alignItems: 'center' }}>
       <div className="challenge-card" style={{ margin: 20, textAlign: 'center' }}>
@@ -50,7 +68,7 @@ export default function StationPage() {
           Station Locked
         </h2>
         <p className="challenge-card__prompt" style={{ margin: '8px 0 20px' }}>
-          {accessInfo?.reason || error || 'You cannot access this station yet. Complete the previous challenges first.'}
+          {denied?.reason || 'Complete previous challenges first.'}
         </p>
         <button className="btn-primary" onClick={() => navigate('/')}>
           Return to Mission Hub →

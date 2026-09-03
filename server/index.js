@@ -629,14 +629,22 @@ function validateMemoryGlitch(config, answer, progress) {
 }
 
 function validateFindDifference(config, answer, progress) {
-  if (!answer || !answer.found_ids) return { correct: false, message: 'No differences provided' }
-  const validIds = config.differences.map(d => d.id)
-  const correctFound = answer.found_ids.filter(id => validIds.includes(id))
-  const required = config.required_found || 5
-  if (correctFound.length >= required) {
-    return { correct: true, message: 'All 5 Anomalies Identified!' }
+  if (!answer || answer.guess_count === undefined) return { correct: false, message: 'No answer provided' }
+  const correctCount = config.answer_count || config.differences?.length || 4
+  const guess = parseInt(answer.guess_count)
+  if (isNaN(guess)) return { correct: false, message: 'Invalid answer' }
+
+  if (guess === correctCount) {
+    return { correct: true, message: `Correct! There are ${correctCount} differences.` }
   }
-  return { correct: false, message: `${correctFound.length}/${required} differences found. Keep scanning!`, found_count: correctFound.length }
+
+  const maxAttempts = config.max_attempts || 3
+  const remaining = maxAttempts - progress.attempts_used
+  if (remaining <= 0) {
+    return { correct: false, message: `The correct answer was ${correctCount}. All attempts used.`, game_over: true }
+  }
+  const hint = guess < correctCount ? 'Too low — look more carefully!' : 'Too high — some of those might not be differences.'
+  return { correct: false, message: `${hint} ${remaining} attempt(s) remaining.` }
 }
 
 function validateDigitalEscape(config, answer, progress) {
@@ -724,7 +732,10 @@ function sanitizeGameConfig(gameType, config) {
       sanitized.questions = sanitized.questions?.map(q => ({ id: q.id, text: q.text, options: q.options }))
       break
     case 'find_difference':
+      // Only expose images and the count — not the answer
       delete sanitized.differences
+      delete sanitized.answer_count
+      sanitized.max_attempts = config.max_attempts || 3
       break
     case 'digital_escape':
       sanitized.puzzles = sanitized.puzzles?.map(p => ({ id: p.id, type: p.type, title: p.title, prompt: p.prompt, options: p.options, hint: p.hint }))

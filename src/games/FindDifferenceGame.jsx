@@ -1,72 +1,44 @@
 import React, { useState } from 'react'
-import { quizStations } from '../../content/quizStations.js'
 
-const station3 = quizStations.find((s) => s.id === 3)
-const TARGET_SPOTS = station3?.config?.differences || []
-
-export default function FindDifferenceGame({ config, onValidate, loading }) {
-  const [foundIds, setFoundIds] = useState([])
+export default function FindDifferenceGame({ config, onValidate, loading, lastResult }) {
+  const [guess, setGuess] = useState('')
   const [activeTab, setActiveTab] = useState('both')
-  const [ripples, setRipples] = useState([])
 
-  const requiredFound = config.required_found || TARGET_SPOTS.length || 5
+  const totalDiffs = config.answer_count ?? config.differences?.length ?? 4
 
-  const handleImageClick = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const clickX = ((e.clientX - rect.left) / rect.width) * 100
-    const clickY = ((e.clientY - rect.top) / rect.height) * 100
-
-    const newRipple = { id: Date.now(), x: clickX, y: clickY }
-    setRipples(prev => [...prev, newRipple])
-    setTimeout(() => setRipples(prev => prev.filter(r => r.id !== newRipple.id)), 500)
-
-    const tolerance = config.click_tolerance || station3?.config?.click_tolerance || 14
-    for (const spot of TARGET_SPOTS) {
-      const dist = Math.sqrt(Math.pow(clickX - spot.x, 2) + Math.pow(clickY - spot.y, 2))
-      if (dist <= tolerance && !foundIds.includes(spot.id)) {
-        const updated = [...foundIds, spot.id]
-        setFoundIds(updated)
-        if (updated.length >= requiredFound) {
-          onValidate({ found_ids: updated })
-        }
-        break
-      }
-    }
+  const handleSubmit = () => {
+    const num = parseInt(guess)
+    if (isNaN(num) || num < 0) return
+    onValidate({ guess_count: num })
   }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSubmit()
+  }
+
+  const isWrong = lastResult && !lastResult.correct
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Scanner Status Bar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          background: 'var(--bg-pill)',
-          padding: '10px 14px',
-          borderRadius: 'var(--radius-md)'
-        }}
-      >
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent-light)' }}>
-          🔍 ANOMALIES FOUND: {foundIds.length} / {requiredFound}
-        </span>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {TARGET_SPOTS.map((s) => (
-            <div
-              key={s.id}
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                background: foundIds.includes(s.id) ? 'var(--success)' : 'rgba(0,0,0,0.08)',
-                border: '1px solid rgba(0,0,0,0.15)'
-              }}
-            />
-          ))}
+
+      {/* Instruction Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1))',
+        border: '1px solid rgba(99,102,241,0.3)',
+        borderRadius: 'var(--radius-md)',
+        padding: '12px 16px',
+        textAlign: 'center'
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--accent-light)', marginBottom: 4 }}>
+          🔍 SPOT THE DIFFERENCES
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          Compare both images carefully and count how many differences you can find between them.
+          Then enter your answer below.
         </div>
       </div>
 
-      {/* Mode View Switcher */}
+      {/* View Switcher */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
         <button
           type="button"
@@ -82,7 +54,7 @@ export default function FindDifferenceGame({ config, onValidate, loading }) {
           style={{ minHeight: 38, padding: 6, fontSize: 12 }}
           onClick={() => setActiveTab('original')}
         >
-          Feed A (Original)
+          Image A
         </button>
         <button
           type="button"
@@ -90,19 +62,19 @@ export default function FindDifferenceGame({ config, onValidate, loading }) {
           style={{ minHeight: 38, padding: 6, fontSize: 12 }}
           onClick={() => setActiveTab('modified')}
         >
-          Feed B (Modified)
+          Image B
         </button>
       </div>
 
-      {/* Scanner Views */}
+      {/* Images */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {(activeTab === 'both' || activeTab === 'original') && (
-          <div className="game-media-frame" style={{ height: 180, cursor: 'crosshair', position: 'relative', overflow: 'hidden' }} onClick={handleImageClick}>
-            <div style={{ position: 'absolute', top: 6, left: 8, zIndex: 10, fontSize: 10, fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: 4 }}>
-              FEED A — ORIGINAL
+          <div className="game-media-frame" style={{ height: 180, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 6, left: 8, zIndex: 10, fontSize: 10, fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: 4, color: '#fff' }}>
+              IMAGE A — ORIGINAL
             </div>
             {config.image_original ? (
-              <img src={config.image_original} alt="Feed A Original" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={config.image_original} alt="Image A" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               <svg width="100%" height="100%" viewBox="0 0 400 200" fill="none">
                 <rect width="400" height="200" fill="#0f172a"/>
@@ -115,41 +87,22 @@ export default function FindDifferenceGame({ config, onValidate, loading }) {
                 <path d="M170 50 Q200 15 230 50 Z" fill="#3b82f6"/>
                 <line x1="320" y1="50" x2="320" y2="20" stroke="#cbd5e1" strokeWidth="2"/>
                 <rect x="320" y="20" width="22" height="14" fill="#ef4444"/>
-                <circle cx="331" cy="27" r="4" fill="#ffffff"/>
                 <rect y="160" width="400" height="40" fill="#334155"/>
                 <rect x="110" y="140" width="30" height="20" fill="#6366f1" rx="2"/>
                 <text x="125" y="153" fill="#fff" fontSize="7" textAnchor="middle" fontWeight="bold">ENISo</text>
                 <circle cx="280" cy="140" r="16" fill="#16a34a"/>
-                <rect x="277" y="156" width="6" height="15" fill="#78350f"/>
               </svg>
             )}
-            {TARGET_SPOTS.filter(s => foundIds.includes(s.id)).map(spot => (
-              <div
-                key={spot.id}
-                style={{
-                  position: 'absolute',
-                  left: `${spot.x}%`,
-                  top: `${spot.y}%`,
-                  transform: 'translate(-50%, -50%)',
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  border: '3px solid var(--success)',
-                  boxShadow: '0 0 12px var(--success)',
-                  pointerEvents: 'none'
-                }}
-              />
-            ))}
           </div>
         )}
 
         {(activeTab === 'both' || activeTab === 'modified') && (
-          <div className="game-media-frame" style={{ height: 180, cursor: 'crosshair', position: 'relative', overflow: 'hidden' }} onClick={handleImageClick}>
-            <div style={{ position: 'absolute', top: 6, left: 8, zIndex: 10, fontSize: 10, fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: 4 }}>
-              FEED B — MODIFIED (TAP ANOMALIES)
+          <div className="game-media-frame" style={{ height: 180, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 6, left: 8, zIndex: 10, fontSize: 10, fontFamily: 'var(--font-mono)', background: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: 4, color: '#fff' }}>
+              IMAGE B — MODIFIED
             </div>
             {config.image_modified ? (
-              <img src={config.image_modified} alt="Feed B Modified" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={config.image_modified} alt="Image B" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
               <svg width="100%" height="100%" viewBox="0 0 400 200" fill="none">
                 <rect width="400" height="200" fill="#0f172a"/>
@@ -164,28 +117,85 @@ export default function FindDifferenceGame({ config, onValidate, loading }) {
                 <rect x="320" y="20" width="22" height="14" fill="#10b981"/>
                 <rect y="160" width="400" height="40" fill="#334155"/>
                 <circle cx="280" cy="140" r="16" fill="#16a34a"/>
-                <rect x="277" y="156" width="6" height="15" fill="#78350f"/>
                 <circle cx="250" cy="135" r="13" fill="#22c55e"/>
-                <rect x="248" y="148" width="5" height="15" fill="#78350f"/>
               </svg>
             )}
-            {TARGET_SPOTS.filter(s => foundIds.includes(s.id)).map(spot => (
-              <div
-                key={spot.id}
-                style={{
-                  position: 'absolute',
-                  left: `${spot.x}%`,
-                  top: `${spot.y}%`,
-                  transform: 'translate(-50%, -50%)',
-                  width: 32,
-                  height: 32,
-                  borderRadius: '50%',
-                  border: '3px solid var(--success)',
-                  boxShadow: '0 0 12px var(--success)',
-                  pointerEvents: 'none'
-                }}
-              />
-            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Number Input */}
+      <div style={{
+        background: 'var(--bg-pill)',
+        borderRadius: 'var(--radius-md)',
+        padding: '16px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12
+      }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'center' }}>
+          How many differences did you find?
+        </div>
+
+        {/* Number Picker */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+          <button
+            type="button"
+            onClick={() => setGuess(prev => String(Math.max(0, (parseInt(prev) || 0) - 1)))}
+            style={{
+              width: 44, height: 44, borderRadius: '50%',
+              background: 'rgba(99,102,241,0.15)',
+              border: '1.5px solid rgba(99,102,241,0.3)',
+              color: 'var(--accent-light)', fontSize: 22, fontWeight: 800,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              lineHeight: 1
+            }}
+          >−</button>
+
+          <input
+            type="number"
+            min="0"
+            max="20"
+            value={guess}
+            onChange={e => setGuess(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="0"
+            style={{
+              width: 80, height: 56, textAlign: 'center',
+              fontSize: 28, fontWeight: 800,
+              background: isWrong ? 'rgba(239,68,68,0.1)' : 'var(--bg-card)',
+              border: isWrong
+                ? '2px solid rgba(239,68,68,0.6)'
+                : '2px solid rgba(99,102,241,0.3)',
+              borderRadius: 'var(--radius-md)',
+              color: isWrong ? '#f87171' : 'var(--text-primary)',
+              outline: 'none',
+              transition: 'all 0.2s ease'
+            }}
+          />
+
+          <button
+            type="button"
+            onClick={() => setGuess(prev => String((parseInt(prev) || 0) + 1))}
+            style={{
+              width: 44, height: 44, borderRadius: '50%',
+              background: 'rgba(99,102,241,0.15)',
+              border: '1.5px solid rgba(99,102,241,0.3)',
+              color: 'var(--accent-light)', fontSize: 22, fontWeight: 800,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              lineHeight: 1
+            }}
+          >+</button>
+        </div>
+
+        {/* Wrong answer feedback */}
+        {isWrong && (
+          <div style={{
+            textAlign: 'center', fontSize: 12,
+            color: '#f87171', fontWeight: 600,
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            ✗ Not quite! Try again.
           </div>
         )}
       </div>
@@ -193,10 +203,11 @@ export default function FindDifferenceGame({ config, onValidate, loading }) {
       <button
         type="button"
         className="btn-primary"
-        onClick={() => onValidate({ found_ids: foundIds })}
-        disabled={foundIds.length < requiredFound || loading}
+        onClick={handleSubmit}
+        disabled={guess === '' || isNaN(parseInt(guess)) || loading}
+        style={{ fontSize: 16 }}
       >
-        {loading ? 'Verifying Scanner Data...' : `Confirm Scan (${foundIds.length}/${requiredFound})`}
+        {loading ? 'Checking...' : `Submit Answer: ${guess || '?'} differences`}
       </button>
     </div>
   )

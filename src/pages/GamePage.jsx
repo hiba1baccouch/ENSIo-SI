@@ -43,26 +43,44 @@ export default function GamePage() {
         setLoading(true)
         const [stData, tmData] = await Promise.all([
           api.getStation(stationId),
-          api.getTeam(teamId)
+          api.getTeam(teamId).catch(() => null)
         ])
+
+        if (!stData) {
+          setError('Station not found')
+          return
+        }
         setStation(stData)
-        setTeam(tmData)
-        writeTeamBackup(tmData)
+
+        // Fallback team from localStorage if DB was reset
+        const fallbackTeam = tmData || {
+          id: teamId,
+          name: localStorage.getItem('eniso_locked_team_name') || 'Squad',
+          color: localStorage.getItem('eniso_locked_team_color') || '#4f46e5',
+          avatar: localStorage.getItem('eniso_locked_team_avatar') || '⚡',
+          score: 0,
+          current_station: 1,
+          progress: []
+        }
+        setTeam(fallbackTeam)
+        if (tmData) writeTeamBackup(tmData)
 
         // Find progress record for this station
-        const progress = tmData.progress?.find(p => p.station_id === parseInt(stationId))
+        const progress = fallbackTeam.progress?.find(p => p.station_id === parseInt(stationId))
         if (progress) {
           setAttemptsUsed(progress.attempts_used || 0)
           if (progress.status === 'completed' && progress.hint_unlocked) {
             // Already solved! Fetch hint
-            const hintRes = await api.getHint(stationId, teamId)
-            setUnlockedHint(hintRes.hint)
-            setPointsEarned(progress.score_earned || stData.points_reward)
+            const hintRes = await api.getHint(stationId, teamId).catch(() => null)
+            if (hintRes) {
+              setUnlockedHint(hintRes.hint)
+              setPointsEarned(progress.score_earned || stData.points_reward)
+            }
           }
         }
 
-        // Inform backend game has started
-        await api.startGame(teamId, stationId)
+        // Inform backend game has started (best-effort)
+        await api.startGame(teamId, stationId).catch(() => null)
       } catch (err) {
         setError(err.message || 'Failed to start game session')
       } finally {
@@ -132,7 +150,7 @@ export default function GamePage() {
 
   if (loading) return <LoadingSpinner text="Booting Neural Game Simulator..." />
 
-  if (error || !station || !team) {
+  if (error || !station) {
     return (
       <div className="page justify-center items-center">
         <div className="card card--error text-center" style={{ padding: 'var(--sp-6)' }}>
@@ -140,8 +158,8 @@ export default function GamePage() {
           <p className="text-secondary text-sm" style={{ margin: 'var(--sp-3) 0' }}>
             {error || 'Unable to start this station.'}
           </p>
-          <button className="btn btn--primary" onClick={() => navigate(`/station/${stationId}`)}>
-            Back to Station
+          <button className="btn btn--primary" onClick={() => navigate('/')}>
+            Return to Mission Hub
           </button>
         </div>
       </div>
