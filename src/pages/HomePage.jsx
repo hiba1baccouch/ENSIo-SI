@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { readTeamBackup, writeTeamBackup, mergeTeamStats } from '../teamBackup'
 import SquadLock from '../components/SquadLock'
 import QRScannerModal from '../components/QRScannerModal'
 import LoadingSpinner from '../components/LoadingSpinner'
@@ -24,16 +25,29 @@ export default function HomePage() {
   const refreshStats = async (teamId, silent = false) => {
     try {
       if (!silent) setLoading(true)
-      const [allTeams, privateData] = await Promise.all([
+      const backup = readTeamBackup(teamId)
+      if (teamId && backup && (backup.score > 0 || (backup.progress || []).length > 0)) {
+        await api.syncTeam(teamId, backup).catch(() => null)
+      }
+      const [allTeams, privateData, teamData] = await Promise.all([
         api.getTeams().catch(() => []),
-        teamId ? api.getPrivateStats(teamId).catch(() => null) : null
+        teamId ? api.getPrivateStats(teamId).catch(() => null) : null,
+        teamId ? api.getTeam(teamId).catch(() => null) : null,
       ])
       if (allTeams && allTeams.length > 0) {
         setTeams(allTeams)
       }
-      if (privateData) {
-        setMyStats(privateData)
-        localStorage.setItem('eniso_cached_my_stats', JSON.stringify(privateData))
+      if (privateData || teamData) {
+        const merged = mergeTeamStats(
+          {
+            ...(privateData || {}),
+            ...(teamData || {}),
+            completed_count: privateData?.completed_count ?? backup?.completed_count ?? 0,
+          },
+          backup
+        )
+        setMyStats(merged)
+        writeTeamBackup(merged)
       }
     } catch (err) {
       console.error('Failed to load mission data', err)
@@ -52,18 +66,20 @@ export default function HomePage() {
     localStorage.setItem('eniso_locked_team_id', team.id)
     setLockedTeamId(team.id)
 
-    // Pre-seed local cached stats so UI renders instantly without waiting for network
+    // Keep any already-saved score if this device re-opens lock flow for the same squad
+    const existing = readTeamBackup(team.id)
     const initialStats = {
       id: team.id,
       name: team.name,
       color: team.color,
       avatar: team.avatar || '⚡',
-      current_station: 1,
-      score: 0,
-      completed_count: 0
+      current_station: existing?.current_station || 1,
+      score: existing?.score || 0,
+      completed_count: existing?.completed_count || 0,
+      progress: existing?.progress || [],
     }
     setMyStats(initialStats)
-    localStorage.setItem('eniso_cached_my_stats', JSON.stringify(initialStats))
+    writeTeamBackup(initialStats)
 
     refreshStats(team.id)
   }

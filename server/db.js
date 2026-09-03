@@ -1,8 +1,9 @@
 import Database from 'better-sqlite3'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { v4 as uuidv4 } from 'uuid'
 import fs from 'fs'
+import { quizStations } from '../content/quizStations.js'
+import { restoreTeamStore } from './teamStore.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -19,6 +20,43 @@ if (!fs.existsSync(dataDir)) {
 export const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
+
+// Always overwrite station quiz data from content/quizStations.js
+export function applyQuizContentFromCode() {
+  const upsertStation = db.prepare(`
+    INSERT INTO stations (id, name, game_type, is_enabled, order_index, hint_text, next_station_id, points_reward)
+    VALUES (?, ?, ?, 1, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      name = excluded.name,
+      game_type = excluded.game_type,
+      order_index = excluded.order_index,
+      hint_text = excluded.hint_text,
+      next_station_id = excluded.next_station_id,
+      points_reward = excluded.points_reward
+  `)
+  const upsertConfig = db.prepare(`
+    INSERT INTO game_configs (station_id, config_json, updated_at)
+    VALUES (?, ?, datetime('now'))
+    ON CONFLICT(station_id) DO UPDATE SET
+      config_json = excluded.config_json,
+      updated_at = datetime('now')
+  `)
+
+  for (let i = 0; i < quizStations.length; i++) {
+    const s = quizStations[i]
+    const nextId = i < quizStations.length - 1 ? quizStations[i + 1].id : null
+    upsertStation.run(
+      s.id,
+      s.name,
+      s.game_type,
+      s.order_index ?? i + 1,
+      s.hint_text || '',
+      nextId,
+      s.points_reward ?? 100
+    )
+    upsertConfig.run(s.id, JSON.stringify(s.config || {}))
+  }
+}
 
 // ─── SCHEMA ───────────────────────────────────────────────
 export function initializeDatabase() {
@@ -100,6 +138,9 @@ export function initializeDatabase() {
   if (teamCount < 10 || stationCount < 7 || (s1?.hint_text && s1.hint_text.includes('prochaine'))) {
     seedDefaultData()
   }
+
+  applyQuizContentFromCode()
+  restoreTeamStore(db)
 }
 
 export function seedDefaultData() {
@@ -131,15 +172,14 @@ export function seedDefaultData() {
     insertTeam.run(team.id, team.name, team.color, team.avatar)
   }
 
-  const defaultStations = [
-    { id: 1, name: 'ZOOM', game_type: 'zoom', order_index: 1, hint_text: 'The next checkpoint is where hundreds of students can gather to listen to a single voice.', points_reward: 100 },
-    { id: 2, name: 'MEMORY GLITCH', game_type: 'memory_glitch', order_index: 2, hint_text: 'You have just seen your next destination. Now, find it inside the campus.', points_reward: 100 },
-    { id: 3, name: 'FIND THE DIFFERENCE', game_type: 'find_difference', order_index: 3, hint_text: 'Head to where the ground meets the open sky and students gather between classes.', points_reward: 100 },
-    { id: 4, name: 'DIGITAL ESCAPE', game_type: 'digital_escape', order_index: 4, hint_text: 'Your next checkpoint is located where important campus decisions are made.', points_reward: 100 },
-    { id: 5, name: 'THE MAP IS LYING', game_type: 'map_lying', order_index: 5, hint_text: 'The map showed you what was false. Now, go discover what is true.', points_reward: 100 },
-    { id: 6, name: 'HIDDEN MESSAGE', game_type: 'hidden_message', order_index: 6, hint_text: 'The secret codeword guides you to the Research and Innovation Laboratories.', points_reward: 100 },
-    { id: 7, name: 'ENISo EMOJI CODE', game_type: 'emoji_code', order_index: 7, hint_text: 'Congratulations! Proceed to the central gathering point for the grand closing ceremony.', points_reward: 100 },
-  ]
+  const defaultStations = quizStations.map((s, i) => ({
+    id: s.id,
+    name: s.name,
+    game_type: s.game_type,
+    order_index: s.order_index ?? i + 1,
+    hint_text: s.hint_text || '',
+    points_reward: s.points_reward ?? 100,
+  }))
 
   const insertStation = db.prepare(
     'INSERT INTO stations (id, name, game_type, order_index, hint_text, points_reward, next_station_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
@@ -150,135 +190,11 @@ export function seedDefaultData() {
     insertStation.run(s.id, s.name, s.game_type, s.order_index, s.hint_text, s.points_reward, nextId)
   }
 
-  // Default game configs
-  const defaultConfigs = {
-    1: {
-      image: '',
-      question: 'Where was this photo taken on the ENISo campus?',
-      category: 'Observation & Recognition',
-      options: [
-        { id: 'a', text: 'Main Amphitheater', correct: true },
-        { id: 'b', text: 'Library Entrance', correct: false },
-        { id: 'c', text: 'Cafeteria Wing', correct: false },
-        { id: 'd', text: 'Robotics Laboratory', correct: false },
-      ],
-      max_attempts: 3,
-    },
-    2: {
-      image: '',
-      display_time: 12,
-      questions: [
-        { id: 'q1', text: 'What color was the door in the photo?', options: ['Red', 'Blue', 'Green', 'Yellow'], correct: 0 },
-        { id: 'q2', text: 'How many windows were visible?', options: ['2', '3', '4', '5'], correct: 2 },
-        { id: 'q3', text: 'What was written on the sign?', options: ['ENISo', 'Exit', 'Welcome', 'Library'], correct: 0 },
-        { id: 'q4', text: 'In which direction was the arrow pointing?', options: ['Left', 'Right', 'Up', 'Down'], correct: 1 },
-        { id: 'q5', text: 'What object was placed on the table?', options: ['Book', 'Computer', 'Plant', 'Cup'], correct: 2 },
-      ],
-      required_correct: 4,
-      max_retries: 2,
-    },
-    3: {
-      image_original: '',
-      image_modified: '',
-      differences: [
-        { id: 'd1', x: 15, y: 20, radius: 5, label: 'Missing window' },
-        { id: 'd2', x: 45, y: 35, radius: 5, label: 'Color alteration' },
-        { id: 'd3', x: 70, y: 50, radius: 5, label: 'Extra tree' },
-        { id: 'd4', x: 30, y: 70, radius: 5, label: 'Missing signpost' },
-        { id: 'd5', x: 80, y: 15, radius: 5, label: 'Modified flag' },
-      ],
-      required_found: 5,
-      click_tolerance: 10,
-    },
-    4: {
-      puzzles: [
-        {
-          id: 'p1',
-          type: 'logical_sequence',
-          title: 'Logical Sequence',
-          prompt: 'What is the next number in the sequence: 2, 6, 12, 20, 30, ?',
-          answer: '42',
-          hint: 'Observe the difference between consecutive numbers (+4, +6, +8, +10...).',
-        },
-        {
-          id: 'p2',
-          type: 'visual_pattern',
-          title: 'Visual Pattern',
-          prompt: 'Complete the sequence: ▲●▲▲●●▲▲▲●●●?',
-          answer: '▲▲▲▲',
-          options: ['▲▲▲▲', '●●●●', '▲●▲●', '●▲●▲'],
-          hint: 'Count the number of repetitions in increasing groups.',
-        },
-        {
-          id: 'p3',
-          type: 'scrambled_word',
-          title: 'Unscramble the Letters',
-          prompt: 'Unscramble the letters: NOIITNRGAET KEWE',
-          answer: 'INTEGRATION WEEK',
-          hint: 'It is the official name of this event.',
-        },
-      ],
-    },
-    5: {
-      map_image: '',
-      anomaly: { x: 55, y: 40, radius: 8, description: 'This building does not exist on the real campus.' },
-      click_tolerance: 12,
-      max_attempts: 5,
-    },
-    6: {
-      image: '',
-      elements: [
-        { id: 'e1', x: 20, y: 35, radius: 6, letter: 'L' },
-        { id: 'e2', x: 50, y: 65, radius: 6, letter: 'A' },
-        { id: 'e3', x: 80, y: 25, radius: 6, letter: 'B' },
-      ],
-      final_word: 'LAB',
-      click_tolerance: 10,
-    },
-    7: {
-      rounds: [
-        {
-          id: 'r1',
-          emojis: '🪜 + 🚪 + 2️⃣',
-          difficulty: 'easy',
-          answer: '2nd Floor Staircase',
-          options: ['2nd Floor Staircase', 'Main Elevator', 'Emergency Exit', 'Amphitheater Entrance'],
-          type: 'multiple_choice',
-        },
-        {
-          id: 'r2',
-          emojis: '🏫 + 📐 + ✏️ + 🎓',
-          difficulty: 'easy',
-          answer: 'Engineering School',
-          options: ['Engineering School', 'Art Museum', 'Hospital', 'Stadium'],
-          type: 'multiple_choice',
-        },
-        {
-          id: 'r3',
-          emojis: '☕ + 📚 + 🤫 + 🪑',
-          difficulty: 'medium',
-          answer: 'Library',
-          options: ['Cafeteria', 'Library', 'Lab Room', 'Administration'],
-          type: 'multiple_choice',
-        },
-        {
-          id: 'r4',
-          emojis: '💻 + 🧑‍💻 + 🔌 + 🖥️',
-          difficulty: 'medium',
-          answer: 'Computing Center',
-          options: ['Computing Center', 'Cybercafe', 'Amphitheater', 'Clubs Office'],
-          type: 'multiple_choice',
-        },
-      ],
-      required_correct: 3,
-    },
-  }
-
   const insertConfig = db.prepare(
     'INSERT INTO game_configs (station_id, config_json) VALUES (?, ?)'
   )
-  for (const [stationId, config] of Object.entries(defaultConfigs)) {
-    insertConfig.run(parseInt(stationId), JSON.stringify(config))
+  for (const station of quizStations) {
+    insertConfig.run(station.id, JSON.stringify(station.config || {}))
   }
 
   // Initialize team progress — station 1 is 'available', rest are 'locked'

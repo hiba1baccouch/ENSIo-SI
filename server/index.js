@@ -4,6 +4,14 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import { randomUUID } from 'crypto'
 import { db, initializeDatabase } from './db.js'
+import {
+  snapshotTeam,
+  snapshotAllTeams,
+  applySnapshotToDb,
+  restoreTeamStore,
+  clearTeamSnapshot,
+  clearAllSnapshots,
+} from './teamStore.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -18,8 +26,9 @@ app.use(express.urlencoded({ limit: '15mb', extended: true }))
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')))
 app.use('/placeholders', express.static(path.join(__dirname, '..', 'public', 'placeholders')))
 
-// Initialize database
+// Initialize database then restore persisted team scores
 initializeDatabase()
+restoreTeamStore(db)
 
 // ─── PROGRESSIVE SCORING HELPER ──────────────────────────
 // Attempt 1: 100 pts, Attempt 2: 75 pts, Attempt 3: 50 pts, 4+: 0 pts
@@ -119,6 +128,7 @@ app.get('/api/images/:id', (req, res) => {
 // Get public leaderboard standings
 app.get('/api/leaderboard', (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
+  restoreTeamStore(db)
   const teams = db.prepare('SELECT id, name, color, avatar, score, current_station, updated_at FROM teams WHERE is_active = 1 ORDER BY score DESC, current_station DESC').all()
   res.json(teams)
 })
@@ -166,6 +176,26 @@ app.get('/api/teams/:teamId', (req, res) => {
   `).all(req.params.teamId)
 
   res.json({ ...team, progress })
+})
+
+// Restore this team's saved score/progress (survives Vercel DB resets)
+app.post('/api/teams/:teamId/sync', (req, res) => {
+  const teamId = req.params.teamId
+  const team = db.prepare('SELECT id FROM teams WHERE id = ?').get(teamId)
+  if (!team) return res.status(404).json({ error: 'Team not found' })
+
+  const { score, current_station, progress } = req.body || {}
+  applySnapshotToDb(db, teamId, { score, current_station, progress })
+
+  const updated = db.prepare('SELECT id, name, color, avatar, current_station, score FROM teams WHERE id = ?').get(teamId)
+  const rankResult = db.prepare('SELECT COUNT(*) as higher_count FROM teams WHERE score > ? AND is_active = 1').get(updated.score)
+  const completedCount = db.prepare("SELECT COUNT(*) as count FROM team_progress WHERE team_id = ? AND status = 'completed'").get(teamId).count
+
+  res.json({
+    ...updated,
+    rank: (rankResult?.higher_count || 0) + 1,
+    completed_count: completedCount,
+  })
 })
 
 // ─── STATION ROUTES (QR ONLY ACCESS) ──────────────────────
@@ -334,6 +364,7 @@ app.post('/api/game/validate', (req, res) => {
     result.next_potential_points = calculateProgressivePoints(newAttempts + 1)
   }
 
+  snapshotTeam(db, teamId)
   res.json(result)
 })
 
@@ -449,6 +480,7 @@ app.put('/api/admin/teams/:teamId', adminAuth, (req, res) => {
   updates.push("updated_at = datetime('now')")
   values.push(req.params.teamId)
   db.prepare(`UPDATE teams SET ${updates.join(', ')} WHERE id = ?`).run(...values)
+  snapshotTeam(db, req.params.teamId)
   res.json({ success: true })
 })
 
@@ -462,6 +494,7 @@ app.post('/api/admin/teams/:teamId/reset', adminAuth, (req, res) => {
     db.prepare("UPDATE team_progress SET status = 'available' WHERE team_id = ? AND station_id = ?").run(teamId, firstStation.id)
   }
   db.prepare("UPDATE teams SET score = 0, current_station = 1, updated_at = datetime('now') WHERE id = ?").run(teamId)
+  clearTeamSnapshot(teamId)
   res.json({ success: true })
 })
 
@@ -473,6 +506,7 @@ app.post('/api/admin/reset-all', adminAuth, (req, res) => {
     db.prepare("UPDATE team_progress SET status = 'available' WHERE station_id = ?").run(firstStation.id)
   }
   db.prepare("UPDATE teams SET score = 0, current_station = 1, updated_at = datetime('now')").run()
+  clearAllSnapshots()
   res.json({ success: true })
 })
 
@@ -537,6 +571,7 @@ app.post('/api/admin/arrival-bonus', adminAuth, (req, res) => {
     results.push({ teamId, rank, points_awarded: points })
   }
 
+  snapshotAllTeams(db)
   res.json({ success: true, results })
 })
 

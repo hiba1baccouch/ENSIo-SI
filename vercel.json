@@ -19,7 +19,7 @@
       "destination": "/placeholders/$1"
     },
     {
-      "source": "/((?!assets/|placeholders/|favicon|pwa-|apple-touch-icon|site.webmanifest|.*\\..*).*)",
+      "source": "/((?!assets/|stations/|placeholders/|favicon|pwa-|apple-touch-icon|site.webmanifest|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]

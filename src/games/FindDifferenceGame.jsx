@@ -1,19 +1,15 @@
 import React, { useState } from 'react'
+import { quizStations } from '../../content/quizStations.js'
 
-const TARGET_SPOTS = [
-  { id: 'd1', x: 15, y: 20, label: 'Window variation' },
-  { id: 'd2', x: 45, y: 35, label: 'Dome color shift' },
-  { id: 'd3', x: 70, y: 50, label: 'Extra tree' },
-  { id: 'd4', x: 30, y: 70, label: 'Missing signpost' },
-  { id: 'd5', x: 80, y: 15, label: 'Flag variation' },
-]
+const station3 = quizStations.find((s) => s.id === 3)
+const TARGET_SPOTS = station3?.config?.differences || []
 
 export default function FindDifferenceGame({ config, onValidate, loading }) {
   const [foundIds, setFoundIds] = useState([])
   const [activeTab, setActiveTab] = useState('both')
   const [ripples, setRipples] = useState([])
 
-  const requiredFound = 5
+  const requiredFound = config.required_found || TARGET_SPOTS.length || 5
 
   const handleImageClick = (e) => {
     const rect = e.currentTarget.getBoundingClientRect()
@@ -24,7 +20,7 @@ export default function FindDifferenceGame({ config, onValidate, loading }) {
     setRipples(prev => [...prev, newRipple])
     setTimeout(() => setRipples(prev => prev.filter(r => r.id !== newRipple.id)), 500)
 
-    const tolerance = 14
+    const tolerance = config.click_tolerance || station3?.config?.click_tolerance || 14
     for (const spot of TARGET_SPOTS) {
       const dist = Math.sqrt(Math.pow(clickX - spot.x, 2) + Math.pow(clickY - spot.y, 2))
       if (dist <= tolerance && !foundIds.includes(spot.id)) {

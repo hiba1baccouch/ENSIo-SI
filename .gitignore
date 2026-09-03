@@ -19,6 +19,7 @@ dist-ssr
 .DS_Store
 # Database & Environment
 data/*.db*
+data/team_store.json
 .env
 .env.*
 !.env.example

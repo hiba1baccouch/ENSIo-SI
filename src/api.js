@@ -29,6 +29,8 @@ export const api = {
   getTeams: () => request('/teams'),
   getTeam: (teamId) => request(`/teams/${teamId}`),
   getPrivateStats: (teamId) => request(`/teams/${teamId}/private-stats`),
+  syncTeam: (teamId, snapshot) =>
+    request(`/teams/${teamId}/sync`, { method: 'POST', body: snapshot }),
   getLeaderboard: () => request('/leaderboard'),
 
   // Stations (QR Access)

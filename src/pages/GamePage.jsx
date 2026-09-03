@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import { writeTeamBackup } from '../teamBackup'
 
 // Components
 import GameHeader from '../components/GameHeader'
@@ -46,6 +47,7 @@ export default function GamePage() {
         ])
         setStation(stData)
         setTeam(tmData)
+        writeTeamBackup(tmData)
 
         // Find progress record for this station
         const progress = tmData.progress?.find(p => p.station_id === parseInt(stationId))
@@ -102,6 +104,11 @@ export default function GamePage() {
         setLastResult(null) // clear on success (hint card takes over)
         setUnlockedHint(res.hint)
         setPointsEarned(res.points_earned || station.points_reward)
+        const fresh = await api.getTeam(teamId).catch(() => null)
+        if (fresh) {
+          setTeam(fresh)
+          writeTeamBackup(fresh)
+        }
       } else if (res.game_over) {
         setIsGameOver(true)
         setGameOverMsg(res.message)
@@ -183,6 +190,7 @@ export default function GamePage() {
         stationName={`Station ${station.id}: ${station.name}`}
         teamName={team.name}
         teamColor={team.color}
+        teamScore={team.score || 0}
         attemptsUsed={attemptsUsed}
         maxAttempts={station.config?.max_attempts || 0}
         progress={((parseInt(stationId) - 1) / 7) * 100}

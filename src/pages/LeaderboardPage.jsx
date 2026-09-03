@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
+import { readTeamBackup } from '../teamBackup'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function LeaderboardPage() {
@@ -10,6 +11,11 @@ export default function LeaderboardPage() {
 
   const fetchLeaderboard = async () => {
     try {
+      const teamId = localStorage.getItem('eniso_locked_team_id')
+      const backup = readTeamBackup(teamId)
+      if (teamId && backup && (backup.score > 0 || (backup.progress || []).length > 0)) {
+        await api.syncTeam(teamId, backup).catch(() => null)
+      }
       const data = await api.getLeaderboard()
       setTeams(data)
       setLastUpdated(new Date())
